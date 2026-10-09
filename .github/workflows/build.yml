@@ -46,7 +46,17 @@ jobs:
       - run: chmod +x ./gradlew
       - name: Build Stonecutter version
         run: |
-          ./gradlew ":${{ matrix.version }}-${{ matrix.version == '1.8.9' && 'ornithe' || 'fabric' }}:build"
+          # maven.kikugie.dev (fabric-loom buildscript deps) times out
+          # under 10 cold parallel jobs; retry before failing the matrix.
+          for attempt in 1 2 3; do
+            if ./gradlew ":${{ matrix.version }}-${{ matrix.version == '1.8.9' && 'ornithe' || 'fabric' }}:build"; then
+              exit 0
+            fi
+            echo "::warning::gradle build attempt $attempt failed"
+            sleep $((attempt * 20))
+          done
+          echo "::error::gradle build failed after 3 attempts"
+          exit 1
 
       - name: Resolve built mod jar
         id: mod-jar
@@ -61,10 +71,11 @@ jobs:
 
           echo "path=${jars[0]}" >> "$GITHUB_OUTPUT"
 
+      # archive: false => the file name becomes the artifact name, so the
+      # release job downloads these with the pattern "polyplus-*".
       - name: Upload built mod jar
         uses: actions/upload-artifact@v7
         with:
-          name: jar-${{ matrix.version }}
           path: ${{ steps.mod-jar.outputs.path }}
           archive: false
           if-no-files-found: error
@@ -81,7 +92,7 @@ jobs:
 
       - uses: actions/download-artifact@v7
         with:
-          pattern: jar-*
+          pattern: polyplus-*
           merge-multiple: true
           path: jars
 
