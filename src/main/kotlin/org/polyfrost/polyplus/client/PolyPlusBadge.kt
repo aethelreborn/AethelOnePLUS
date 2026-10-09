@@ -128,7 +128,8 @@ object PolyPlusBadge {
             val entry = connection.getOnlinePlayer(token.value) ?: continue
         *///?}
             val id = tabUuid(entry.profile)
-            if (id.version() == 4) return id
+            // cracked servers hand out version-3 uuids, so both real account shapes resolve
+            if (id.version() == 3 || id.version() == 4) return id
         }
         return null
     }
