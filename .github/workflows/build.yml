@@ -71,13 +71,13 @@ jobs:
 
           echo "path=${jars[0]}" >> "$GITHUB_OUTPUT"
 
-      # archive: false => the file name becomes the artifact name, so the
-      # release job downloads these with the pattern "polyplus-*".
       - name: Upload built mod jar
         uses: actions/upload-artifact@v7
         with:
+          name: jar-${{ matrix.version }}
           path: ${{ steps.mod-jar.outputs.path }}
-          archive: false
+          # stored, not re-deflated: the jar is already a zip
+          compression-level: 0
           if-no-files-found: error
 
   release:
@@ -92,7 +92,7 @@ jobs:
 
       - uses: actions/download-artifact@v7
         with:
-          pattern: polyplus-*
+          pattern: jar-*
           merge-multiple: true
           path: jars
 
