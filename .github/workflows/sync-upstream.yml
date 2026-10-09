@@ -1,0 +1,71 @@
+name: Sync upstream PolyPlus
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Rebase onto Polyfrost/PolyPlus
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git remote get-url upstream > /dev/null 2>&1; then
+            git remote add upstream https://github.com/Polyfrost/PolyPlus.git
+          fi
+          git fetch upstream main
+
+      - name: Check for new upstream commits
+        id: check
+        run: |
+          set -euo pipefail
+          if git merge-base --is-ancestor upstream/main HEAD; then
+            echo "Already up to date with upstream/main."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Upstream/main has new commits; rebasing our patches on top."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rebase onto upstream/main
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          if ! git rebase upstream/main; then
+            git rebase --abort > /dev/null 2>&1 || true
+            echo "::error::Rebase conflict with Polyfrost/PolyPlus main; resolve manually."
+            exit 1
+          fi
+
+      - name: Push rebased main
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          git push --force-with-lease origin main
+
+      - name: Trigger build and release
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # A push made with the default GITHUB_TOKEN does not trigger
+          # on: push workflows, so kick the build explicitly.
+          gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref main
