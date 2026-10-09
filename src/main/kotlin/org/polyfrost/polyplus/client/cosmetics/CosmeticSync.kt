@@ -609,5 +609,7 @@ object CosmeticSync {
         return uuid.takeIf { it.isRealPlayer() }?.toString()
     }
 
-    private fun UUID.isRealPlayer(): Boolean = version() == 4
+    // offline-mode (cracked) accounts are handed version-3 uuids and are
+    // PolyPlus users too; only placeholder/fake profiles get filtered out
+    private fun UUID.isRealPlayer(): Boolean = version() == 3 || version() == 4
 }
