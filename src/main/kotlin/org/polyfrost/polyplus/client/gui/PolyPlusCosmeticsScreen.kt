@@ -583,10 +583,13 @@ private fun WardrobeScreen(
         stockedTypes = CosmeticStore.stockedTypes()
     }
 
+    // pets are folded into the Shoulder tab (shoulder-perched pets live there natively,
+    // and follow-mode pets use the same variant pill as the mode switch)
     val railTypes = remember(stockedTypes, items) {
         val owned = items.mapTo(mutableSetOf()) { it.type }
         CosmeticType.entries.filter {
-            it != CosmeticType.Unknown && (it in stockedTypes || it in owned)
+            it != CosmeticType.Unknown && it != CosmeticType.Pet &&
+                (it in stockedTypes || it in owned || (it == CosmeticType.Shoulder && CosmeticType.Pet in owned))
         }
     }
 
@@ -597,16 +600,20 @@ private fun WardrobeScreen(
     }
 
     val displayItems = remember(items, selectedType) {
-        items.filter { it.type == selectedType }
+        if (selectedType == CosmeticType.Shoulder) {
+            items.filter { it.type == selectedType || it.type == CosmeticType.Pet }
+        } else {
+            items.filter { it.type == selectedType }
+        }
     }
 
     LaunchedEffect(selectedType, displayItems.isEmpty()) {
-        if (selected?.type != selectedType) {
+        if (selected == null || selected !in displayItems) {
             displayItems.firstOrNull()?.let(onSelect)
         }
     }
 
-    val previewItem = selected?.takeIf { it.type == selectedType } ?: displayItems.firstOrNull()
+    val previewItem = selected?.takeIf { it in displayItems } ?: displayItems.firstOrNull()
     Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(19.dp)) {
         CategoryRail(
             selected = selectedType,
@@ -1543,6 +1550,7 @@ private fun cosmeticPreviewFraming(type: CosmeticType): PreviewFraming = when (t
     CosmeticType.Hat, CosmeticType.Glasses -> PreviewFraming(FRONT_YAW_DEG, 1.0f, 1.5f)
     CosmeticType.Boots -> PreviewFraming(FRONT_YAW_DEG, 0.85f, 0.26f)
     CosmeticType.Shoulder -> PreviewFraming(FRONT_YAW_DEG, 0.58f, 0.62f)
+    CosmeticType.Pet -> PreviewFraming(FRONT_YAW_DEG, 0.55f, 0.58f)
     CosmeticType.Wings -> PreviewFraming(BACK_YAW_DEG, 0.5f, 0.5f)
     CosmeticType.Backpack -> PreviewFraming(BACK_YAW_DEG, 0.55f, 0.55f)
     CosmeticType.Cape -> PreviewFraming(BACK_YAW_DEG, 0.42f, 0.5f)
