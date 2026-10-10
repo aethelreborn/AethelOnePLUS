@@ -400,7 +400,15 @@ object CosmeticSync {
 
             // also picks up a new asset hash for one that is already loaded
             loadInBackground(desiredId)
-            val attached = CosmeticAssetCache.getAttachedCosmetic(desiredId)?.copy(slot = slot) ?: continue
+            val attached = CosmeticAssetCache.getAttachedCosmetic(desiredId)?.copy(slot = slot)
+            if (attached == null) {
+                // a follow-mode pet renders as its own entity, so a shoulder-mode
+                // attach left over from the previous variant has to go
+                if (current != null && CosmeticAssetCache.getPetDefinition(desiredId) != null) {
+                    CosmeticApi.unequipSlot(player, slot)
+                }
+                continue
+            }
             if (current?.cosmetic == attached) continue
             CosmeticApi.unequipSlot(player, slot)
             CosmeticApi.equipLocal(player, attached)
@@ -441,8 +449,13 @@ object CosmeticSync {
         if (PetManager.currentPetCosmeticId(uuid) == desiredId) return
 
         loadInBackground(desiredId)
-        // shoulder pets load as attached cosmetics and are equipped like one instead
-        if (CosmeticAssetCache.getPetDefinition(desiredId) != null) PetManager.ensurePet(uuid, desiredId)
+        // shoulder pets load as attached cosmetics and are equipped like one instead;
+        // only switch once the bundle has actually loaded so a still-downloading
+        // follow pet is not torn down mid-swap
+        when {
+            CosmeticAssetCache.getPetDefinition(desiredId) != null -> PetManager.ensurePet(uuid, desiredId)
+            CosmeticAssetCache.getAttachedCosmetic(desiredId) != null -> PetManager.despawn(uuid)
+        }
     }
 
     private fun loadInBackground(cosmeticId: Int) {
