@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile
 import net.minecraft.client.Minecraft
 import net.minecraft.resources.Identifier
 import org.polyfrost.polyplus.client.cosmetics.CosmeticCatalog
+import org.polyfrost.polyplus.client.utils.ClientPlatform
 import java.util.UUID
 
 //? if >= 26.1 {
@@ -42,7 +43,8 @@ object PolyPlusBadge {
 
     @JvmStatic
     fun shouldBadge(uuid: UUID): Boolean =
-        PolyPlusConfig.showPolyPlusIndicator && (DEBUG_FORCE || CosmeticCatalog.isPolyPlusUser(uuid))
+        PolyPlusConfig.showPolyPlusIndicator &&
+            (DEBUG_FORCE || uuid == ClientPlatform.localPlayerUuid() || CosmeticCatalog.isPolyPlusUser(uuid))
 
     //? if > 1.8.9 {
     private val FONT: Identifier = Identifier.fromNamespaceAndPath("polyplus", "badge")
@@ -93,6 +95,7 @@ object PolyPlusBadge {
     fun shouldBadgeTab(info: PlayerInfo): Boolean {
         if (!PolyPlusConfig.showPolyPlusIndicator) return false
         if (DEBUG_FORCE) return true
+        if (tabUuid(info.profile) == ClientPlatform.localPlayerUuid()) return true
         if (CosmeticCatalog.isPolyPlusUser(tabUuid(info.profile))) return true
         val proxied = resolveProxiedTabUuid(info) ?: return false
         return CosmeticCatalog.isPolyPlusUser(proxied)
