@@ -119,12 +119,12 @@ object CosmeticAssetCache {
     // anything evicted reloads from the disk cache the next time it is needed
     fun trim(keep: Set<Int>, inUse: Set<Identifier>) {
         var evicted = false
-for ((id, cape) in capes) {
-        if (id in keep || cape.texture in inUse) continue
-        capes.remove(id)
-        cape.release()
-        evicted = true
-    }
+        for ((id, cape) in capes) {
+            if (id in keep || cape.texture in inUse) continue
+            capes.remove(id)
+            cape.release()
+            evicted = true
+        }
         //? if >= 1.21.1 || = 1.8.9 {
         // a texture id belongs to one cosmetic id, whose entries are always kept or evicted together
         fun <T : Any> MutableMap<Int, T>.evict(textures: (T) -> List<Identifier>) {
