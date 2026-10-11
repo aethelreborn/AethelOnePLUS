@@ -231,6 +231,7 @@ object GroupsRepository {
     private fun notifyMessageReceived(groupId: Int, messageId: Long, sender: String, content: String) {
         val selfId = ChatIdentity.selfId()
         if (sender == selfId) return
+        if (SocialOverlay.isReading(groupId)) return
         if (!NotificationDedup.shouldNotify("group_message:$messageId")) return
 
         PlayerNamesRepository.resolve(listOf(sender))
