@@ -15,6 +15,19 @@ object SocialOverlay {
     @Volatile
     private var pendingAutoHostCurrentWorld = false
 
+    /** True while the overlay screen is on screen, so notifications can stay quiet. */
+    @Volatile
+    var isOverlayOpen: Boolean = false
+        private set
+
+    /** Conversation currently being read in the overlay; its messages are already visible. */
+    @Volatile
+    var readingGroupId: Int? = null
+        internal set
+
+    /** Suppresses the desktop notification for a group the user is already looking at. */
+    fun isReading(groupId: Int): Boolean = isOverlayOpen && readingGroupId == groupId
+
     fun openHostCurrentWorld(from: Screen? = currentScreen()) {
         pendingAutoHostCurrentWorld = true
         open(from)
@@ -55,9 +68,12 @@ object SocialOverlay {
         *///?}
 
         SocialRefresh.refreshAll()
+        isOverlayOpen = true
     }
 
     fun close() {
+        isOverlayOpen = false
+        readingGroupId = null
         val mc = Minecraft.getInstance()
         mc.execute {
             //? if >= 26.2 {

@@ -118,6 +118,12 @@ fun SocialOverlayContent(screen: Screen, onClose: () -> Unit) {
         GroupsRepository.loadMessages(groupId)
     }
 
+    // Mirror the open conversation so message notifications stay quiet while the
+    // user is already reading that group.
+    LaunchedEffect(selectedGroupId) {
+        SocialOverlay.readingGroupId = selectedGroupId
+    }
+
     var friendBaseline by remember { mutableStateOf<Set<String>?>(null) }
     LaunchedEffect(friends) {
         val currentIds = friends.map { it.player }.toSet()
