@@ -8,6 +8,7 @@ import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
+import org.polyfrost.polyplus.client.PolyPlusBadge;
 import org.polyfrost.polyplus.client.emoji.EmojiRegistry;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -22,14 +23,14 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 @Mixin(ChatComponent.class)
 public class MixinChatComponent {
     //? if < 1.21.11 {
-    /*// emoji are applied to the display lines only, so the stored message stays comparable for chat compacting mods
+    /*// emoji and badges are applied to the display lines only, so the stored message stays comparable for chat compacting mods
     @ModifyArg(
         method = "addMessageToDisplayQueue",
         at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/ComponentRenderUtils;wrapComponents(Lnet/minecraft/network/chat/FormattedText;ILnet/minecraft/client/gui/Font;)Ljava/util/List;"),
         index = 0
     )
-    private FormattedText emojiLines(FormattedText text) {
-        return EmojiRegistry.transformForViewer(text);
+    private FormattedText viewerLines(FormattedText text) {
+        return PolyPlusBadge.decorateChatLine(EmojiRegistry.transformForViewer(text));
     }
     *///?}
 

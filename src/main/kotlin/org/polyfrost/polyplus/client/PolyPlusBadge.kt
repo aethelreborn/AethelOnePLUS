@@ -26,6 +26,7 @@ import net.minecraft.client.renderer.RenderPipelines
 //? if > 1.8.9 {
 import net.minecraft.client.multiplayer.PlayerInfo
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.FormattedText
 import net.minecraft.network.chat.Style
 //?} else {
 /*import net.minecraft.client.gui.GuiElement
@@ -71,6 +72,17 @@ object PolyPlusBadge {
         return Component.empty()
             .append(badgeGlyph)
             .append(name)
+    }
+
+    // chat lines are badged on the display copy only, so the stored message stays intact for
+    // chat compacting mods, copy-to-clipboard, and anything else comparing the original text
+    @JvmStatic
+    fun decorateChatLine(text: FormattedText): FormattedText {
+        if (text !is Component) return text
+        if (!PolyPlusConfig.showPolyPlusIndicator) return text
+        val uuid = lookUpPlayerListEntry(text.string) ?: return text
+        if (!shouldBadge(uuid)) return text
+        return Component.empty().append(badgeGlyph).append(text)
     }
     //?}
 
