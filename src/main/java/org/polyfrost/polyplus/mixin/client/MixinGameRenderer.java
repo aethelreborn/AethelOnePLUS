@@ -13,6 +13,7 @@ import org.polyfrost.polyplus.client.utils.ClientPlatform;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 //? if >= 26.2 {
@@ -22,7 +23,6 @@ import net.minecraft.util.ARGB;
 //? if >= 26.1 {
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import org.polyfrost.polyplus.client.gui.MenuPanorama;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 //?}
 
