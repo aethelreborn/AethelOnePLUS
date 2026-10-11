@@ -6,12 +6,14 @@ import net.minecraft.client.renderer.GameRenderer;
 //?} else {
 /*import net.minecraft.client.render.GameRenderer;
 *///?}
+import org.polyfrost.polyplus.client.PolyPlusConfig;
 import org.polyfrost.polyplus.client.gui.PolyPlusMainMenuScreen;
 import org.polyfrost.polyplus.client.gui.PolyPlusMainMenuScreenKt;
 import org.polyfrost.polyplus.client.utils.ClientPlatform;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 //? if >= 26.2 {
 import net.minecraft.util.ARGB;
@@ -51,6 +53,19 @@ public class MixinGameRenderer {
         }
         return original;
     }
+
+    //? if > 1.8.9 && < 26.1 {
+    @Inject(method = "getFov", at = @At("HEAD"), cancellable = true)
+    //? if >= 1.21.11 {
+    private void polyplus$disableDynamicFov(CallbackInfoReturnable<Float> cir) {
+    //?} elif < 1.21.4 {
+    /*private void polyplus$disableDynamicFov(CallbackInfoReturnable<Double> cir) {
+    *///?} else {
+    /*private void polyplus$disableDynamicFov(CallbackInfoReturnable<Float> cir) {
+    *///?}
+        if (!PolyPlusConfig.getDynamicFov()) cir.setReturnValue(1.0F);
+    }
+    //?}
     //?}
 
     //? if >= 26.1 {
