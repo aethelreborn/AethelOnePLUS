@@ -1,12 +1,12 @@
 package org.polyfrost.polyplus.client.pets
 
 //? if > 1.8.9 {
-import com.mojang.math.Axis
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
+import org.joml.Quaternionf
 import org.polyfrost.polyplus.PolyPlusConstants
 import org.polyfrost.polyplus.client.PolyPlusCosmeticsConfig
 import org.polyfrost.polyplus.client.bedrock.BedrockConstants
@@ -17,6 +17,7 @@ import org.polyfrost.polyplus.client.bedrock.playback.BoneTransform
 import org.polyfrost.polyplus.client.cosmetics.PetDefinition
 import org.polyfrost.polyplus.client.render.PoseStack
 import org.polyfrost.polyplus.client.utils.rotateBy
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 //? if >= 26.1 {
@@ -67,12 +68,17 @@ import org.polyfrost.polyplus.client.cosmetics.PetDefinition
 import org.polyfrost.polyplus.client.render.PoseStack
 import org.polyfrost.polyplus.client.render.VertexConsumer
 import org.polyfrost.polyplus.client.utils.rotateBy
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 *///?}
 
 private val FALLBACK_TEXTURE = Identifier.fromNamespaceAndPath(PolyPlusConstants.ID, "textures/pets/missing.png")
 
 private const val TICKS_PER_TEXTURE_FRAME = 4
+
+//? if > 1.8.9 {
+private const val DEG_TO_RAD = 0.017453292f
+//?}
 
 private fun sampleState(
     entity: PetEntity,
@@ -110,6 +116,43 @@ private fun samplePose(
 
 class PetPose(val from: Map<String, BoneTransform>, val to: Map<String, BoneTransform>, val blend: Float)
 
+private const val LINE_OF_SIGHT_CACHE_TICKS = 5
+
+private class LineOfSightEntry {
+    var viewerUuid: UUID? = null
+    var ownerUuid: UUID? = null
+    var visible: Boolean = false
+    var checkedAtTick: Int = Int.MIN_VALUE
+}
+
+private class LineOfSightCache {
+    private val entries = ConcurrentHashMap<Int, LineOfSightEntry>()
+
+    fun get(pet: PetEntity, viewerUuid: UUID, ownerUuid: UUID?, tick: Int): Int {
+        val entry = entries[pet.id] ?: return MISS
+        if (entry.viewerUuid != viewerUuid || entry.ownerUuid != ownerUuid) return MISS
+        val age = tick - entry.checkedAtTick
+        if (age < 0 || age >= LINE_OF_SIGHT_CACHE_TICKS) return MISS
+        return if (entry.visible) VISIBLE else HIDDEN
+    }
+
+    fun record(pet: PetEntity, viewerUuid: UUID, ownerUuid: UUID?, tick: Int, visible: Boolean) {
+        if (entries.size >= MAX_ENTRIES) entries.clear()
+        val entry = entries.getOrPut(pet.id) { LineOfSightEntry() }
+        entry.viewerUuid = viewerUuid
+        entry.ownerUuid = ownerUuid
+        entry.visible = visible
+        entry.checkedAtTick = tick
+    }
+
+    companion object {
+        const val MISS = -1
+        const val HIDDEN = 0
+        const val VISIBLE = 1
+        private const val MAX_ENTRIES = 64
+    }
+}
+
 //? if > 1.8.9 {
 private const val PET_NAMETAG_MAX_DISTANCE = 4096.0
 
@@ -130,6 +173,8 @@ class PetRenderState : EntityRenderState() {
 class PetEntityRenderer(context: EntityRendererProvider.Context) : EntityRenderer<PetEntity, PetRenderState>(context) {
     private val modelCache = ConcurrentHashMap<Int, BedrockStandaloneModel>()
     private val molangVariables = mutableMapOf<String, Float>()
+    private val lineOfSightCache = LineOfSightCache()
+    private val scratchRotation = Quaternionf()
 
     override fun createRenderState(): PetRenderState = PetRenderState()
 
@@ -163,8 +208,22 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) : EntityRendere
         if (!isOwnPet) {
             val viewer = mc.player
             val owner = entity.ownerEntity()
-            if (viewer == null || owner == null || !viewer.hasLineOfSight(owner)) {
+            if (viewer == null || owner == null) {
                 return false
+            }
+            val tick = entity.tickCount
+            val viewerUuid = viewer.uuid
+            val ownerUuid = entity.ownerUuid
+            val cached = lineOfSightCache.get(entity, viewerUuid, ownerUuid, tick)
+            if (cached == LineOfSightCache.HIDDEN) {
+                return false
+            }
+            if (cached != LineOfSightCache.VISIBLE) {
+                val visible = viewer.hasLineOfSight(owner)
+                lineOfSightCache.record(entity, viewerUuid, ownerUuid, tick, visible)
+                if (!visible) {
+                    return false
+                }
             }
         }
         return true
@@ -198,7 +257,7 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) : EntityRendere
 
         poseStack.pushPose()
         poseStack.scale(-definition.scale, -definition.scale, definition.scale)
-        poseStack.rotateBy(Axis.YP.rotationDegrees(180f + state.bodyYaw))
+        poseStack.rotateBy(scratchRotation.rotationY((180f + state.bodyYaw) * DEG_TO_RAD))
 
         model.resetPose()
         if (pose.to.isEmpty()) {
@@ -246,6 +305,8 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
     EntityRenderer<PetEntity, PetRenderState>(context) {
     private val modelCache = ConcurrentHashMap<Int, BedrockStandaloneModel>()
     private val molangVariables = mutableMapOf<String, Float>()
+    private val lineOfSightCache = LineOfSightCache()
+    private val scratchRotation = Quaternionf()
 
     override fun createRenderState(): PetRenderState = PetRenderState()
 
@@ -264,8 +325,22 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
         if (!isOwnPet) {
             val viewer = mc.player
             val owner = entity.ownerEntity()
-            if (viewer == null || owner == null || !viewer.hasLineOfSight(owner)) {
+            if (viewer == null || owner == null) {
                 return false
+            }
+            val tick = entity.tickCount
+            val viewerUuid = viewer.uuid
+            val ownerUuid = entity.ownerUuid
+            val cached = lineOfSightCache.get(entity, viewerUuid, ownerUuid, tick)
+            if (cached == LineOfSightCache.HIDDEN) {
+                return false
+            }
+            if (cached != LineOfSightCache.VISIBLE) {
+                val visible = viewer.hasLineOfSight(owner)
+                lineOfSightCache.record(entity, viewerUuid, ownerUuid, tick, visible)
+                if (!visible) {
+                    return false
+                }
             }
         }
         return true
@@ -298,7 +373,7 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
 
         poseStack.pushPose()
         poseStack.scale(-definition.scale, -definition.scale, definition.scale)
-        poseStack.rotateBy(Axis.YP.rotationDegrees(180f + state.bodyYaw))
+        poseStack.rotateBy(scratchRotation.rotationY((180f + state.bodyYaw) * DEG_TO_RAD))
 
         model.resetPose()
         if (pose.to.isEmpty()) {
@@ -326,6 +401,7 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
     EntityRenderer<PetEntity>(context) {
     private val modelCache = ConcurrentHashMap<Int, BedrockStandaloneModel>()
     private val molangVariables = mutableMapOf<String, Float>()
+    private val scratchRotation = Quaternionf()
 
     override fun getTextureLocation(entity: PetEntity): Identifier =
         entity.definition?.texture ?: FALLBACK_TEXTURE
@@ -345,7 +421,7 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
 
         poseStack.pushPose()
         poseStack.scale(-definition.scale, -definition.scale, definition.scale)
-        poseStack.rotateBy(Axis.YP.rotationDegrees(180f + entityYaw))
+        poseStack.rotateBy(scratchRotation.rotationY((180f + entityYaw) * DEG_TO_RAD))
 
         model.resetPose()
         val pose = samplePose(entity, definition, partialTicks, molangVariables)
@@ -374,6 +450,9 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
 /*class PetEntityRenderer(dispatcher: EntityRenderDispatcher) : EntityRenderer<PetEntity>(dispatcher) {
     private val modelCache = ConcurrentHashMap<Int, BedrockStandaloneModel>()
     private val molangVariables = mutableMapOf<String, Float>()
+    private val lineOfSightCache = LineOfSightCache()
+    private val scratchPoseStack = PoseStack()
+    private val scratchRotation = Quaternionf()
 
     override fun getTextureLocation(entity: PetEntity): Identifier =
         entity.definition?.texture ?: FALLBACK_TEXTURE
@@ -387,8 +466,22 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
         if (!isOwnPet) {
             val viewer = mc.player
             val owner = entity.ownerEntity()
-            if (viewer == null || owner == null || !viewer.canSee(owner)) {
+            if (viewer == null || owner == null) {
                 return false
+            }
+            val tick = entity.tickCount
+            val viewerUuid = viewer.uuid
+            val ownerUuid = entity.ownerUuid
+            val cached = lineOfSightCache.get(entity, viewerUuid, ownerUuid, tick)
+            if (cached == LineOfSightCache.HIDDEN) {
+                return false
+            }
+            if (cached != LineOfSightCache.VISIBLE) {
+                val visible = viewer.canSee(owner)
+                lineOfSightCache.record(entity, viewerUuid, ownerUuid, tick, visible)
+                if (!visible) {
+                    return false
+                }
             }
         }
         return true
@@ -398,10 +491,10 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
         val definition = entity.definition ?: return
         val model = modelCache.getOrPut(definition.id) { BedrockStandaloneModel.build(definition.geometry) }
 
-        val poseStack = PoseStack()
+        val poseStack = scratchPoseStack
         poseStack.translate(dx.toFloat(), dy.toFloat(), dz.toFloat())
         poseStack.scale(-definition.scale, -definition.scale, definition.scale)
-        poseStack.rotateBy(Quaternionf().rotationY(Math.toRadians(180.0 + yaw).toFloat()))
+        poseStack.rotateBy(scratchRotation.rotationY(Math.toRadians(180.0 + yaw).toFloat()))
 
         model.resetPose()
         val pose = samplePose(entity, definition, tickDelta, molangVariables)
@@ -425,6 +518,8 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
                 root.render(poseStack, buffer, packedLight, 0, vScale = vScale, vOffset = vOffset)
             }
         }
+        poseStack.last().pose().identity()
+        poseStack.last().normal().identity()
         GlStateManager.disableRescaleNormal()
         GlStateManager.enableCull()
     }
