@@ -110,7 +110,6 @@ import org.polyfrost.polyplus.client.cosmetics.BillingService
 import org.polyfrost.polyplus.client.cosmetics.CosmeticAssetCache
 import org.polyfrost.polyplus.client.cosmetics.CosmeticCatalog
 import org.polyfrost.polyplus.client.cosmetics.CosmeticEquipment
-import org.polyfrost.polyplus.client.cosmetics.CosmeticGroupView
 import org.polyfrost.polyplus.client.cosmetics.CosmeticLoadProgress
 import org.polyfrost.polyplus.client.cosmetics.CosmeticService
 import org.polyfrost.polyplus.client.cosmetics.CosmeticStore
@@ -575,7 +574,10 @@ private fun WardrobeScreen(
     onSelectVariant: (Int, Int) -> Unit,
     onEquip: (CosmeticUiItem) -> Unit,
 ) {
-    var selectedType by remember { mutableStateOf(CosmeticType.Cape) }
+    var query by remember { mutableStateOf("") }
+    val searchQuery = query.trim()
+    // null selects the "All" tab, which shows every type at once
+    var selectedType by remember { mutableStateOf<CosmeticType?>(null) }
     var stockedTypes by remember {
         mutableStateOf(CosmeticType.entries.filter { it != CosmeticType.Unknown })
     }
@@ -594,16 +596,25 @@ private fun WardrobeScreen(
     }
 
     LaunchedEffect(railTypes) {
-        if (railTypes.isNotEmpty() && selectedType !in railTypes) {
+        val type = selectedType
+        if (type != null && railTypes.isNotEmpty() && type !in railTypes) {
             selectedType = railTypes.first()
         }
     }
 
-    val displayItems = remember(items, selectedType) {
-        if (selectedType == CosmeticType.Shoulder) {
-            items.filter { it.type == selectedType || it.type == CosmeticType.Pet }
+    val displayItems = remember(items, selectedType, searchQuery) {
+        val scoped = when (selectedType) {
+            null -> items
+            CosmeticType.Shoulder -> items.filter { it.type == CosmeticType.Shoulder || it.type == CosmeticType.Pet }
+            else -> items.filter { it.type == selectedType }
+        }
+        if (searchQuery.isEmpty()) {
+            scoped
         } else {
-            items.filter { it.type == selectedType }
+            scoped.filter {
+                it.name.contains(searchQuery, ignoreCase = true) ||
+                    it.collection.contains(searchQuery, ignoreCase = true)
+            }
         }
     }
 
@@ -619,13 +630,27 @@ private fun WardrobeScreen(
             selected = selectedType,
             onSelect = { selectedType = it },
             types = railTypes,
+            showAllTab = true,
         )
-        CosmeticGrid(
-            items = displayItems,
-            modifier = Modifier.width(596.dp).fillMaxHeight(),
-            onSelect = onSelect,
-            onEquip = onEquip,
-        )
+        Column(modifier = Modifier.width(596.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+            CosmeticsSearchBar(query = query, onQueryChange = { query = it })
+            if (displayItems.isEmpty()) {
+                CenteredNote(
+                    if (searchQuery.isEmpty()) {
+                        "Nothing owned in ${selectedType?.displayName ?: "your wardrobe"} yet."
+                    } else {
+                        "No cosmetics match \"$searchQuery\"."
+                    },
+                )
+            } else {
+                CosmeticGrid(
+                    items = displayItems,
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    onSelect = onSelect,
+                    onEquip = onEquip,
+                )
+            }
+        }
         PreviewPanel(
             selected = previewItem,
             status = status,
@@ -709,29 +734,37 @@ private fun statusColor(status: TransactionStatus): Color = when (status) {
 
 @Composable
 private fun CategoryRail(
-    selected: CosmeticType,
-    onSelect: (CosmeticType) -> Unit,
+    selected: CosmeticType?,
+    onSelect: (CosmeticType?) -> Unit,
     types: List<CosmeticType> = CosmeticType.entries.filter { it != CosmeticType.Unknown },
+    showAllTab: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.width(58.dp)) {
-        types.forEach { type ->
-            val isSelected = type == selected
-            Box(
-                modifier = Modifier.fillMaxWidth().height(57.dp)
-                    .clip(ppShape(7.dp))
-                    .background(if (isSelected) Accent else LocalTheme.current.chipBackground)
-                    .border(1.dp, LocalTheme.current.borderColor, ppShape(7.dp))
-                    .clickable { onSelect(type) },
-                contentAlignment = Alignment.Center,
-            ) {
-                SocialText(
-                    type.displayName,
-                    color = if (isSelected) LocalTheme.current.accentTextColor else LocalTheme.current.textColor,
-                    fontSize = 12.sp,
-                    textAlign = TextAlign.Center,
-                )
-            }
+        if (showAllTab) {
+            RailTile("All", selected == null, onClick = { onSelect(null) })
         }
+        types.forEach { type ->
+            RailTile(type.displayName, selected = type == selected, onClick = { onSelect(type) })
+        }
+    }
+}
+
+@Composable
+private fun RailTile(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxWidth().height(57.dp)
+            .clip(ppShape(7.dp))
+            .background(if (selected) Accent else LocalTheme.current.chipBackground)
+            .border(1.dp, LocalTheme.current.borderColor, ppShape(7.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        SocialText(
+            label,
+            color = if (selected) LocalTheme.current.accentTextColor else LocalTheme.current.textColor,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -1739,16 +1772,16 @@ private fun StoreScreen(
     Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(19.dp)) {
         CategoryRail(
             selected = selectedType,
-            onSelect = {
-                if (it != selectedType) {
-                    selectedType = it
+            onSelect = { type ->
+                if (type != null && type != selectedType) {
+                    selectedType = type
                     reset()
                 }
             },
             types = stockedTypes,
         )
         Column(modifier = Modifier.width(596.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(11.dp)) {
-            StoreSearchBar(query = query, onQueryChange = { query = it }, onSubmit = { submit() })
+            CosmeticsSearchBar(query = query, onQueryChange = { query = it }, onSubmit = { submit() })
             when {
                 loading && items.isEmpty() -> CenteredNote("Loading cosmetics...")
                 loadError != null && items.isEmpty() -> CenteredNote(loadError!!)
@@ -1801,7 +1834,11 @@ private fun StoreScreen(
 }
 
 @Composable
-private fun StoreSearchBar(query: String, onQueryChange: (String) -> Unit, onSubmit: () -> Unit) {
+private fun CosmeticsSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onSubmit: (() -> Unit)? = null,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().height(33.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1818,7 +1855,7 @@ private fun StoreSearchBar(query: String, onQueryChange: (String) -> Unit, onSub
             ),
             cursorBrush = SolidColor(LocalTheme.current.textColor),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
+            keyboardActions = KeyboardActions(onSearch = { onSubmit?.invoke() }),
             modifier = Modifier.weight(1f).fillMaxHeight()
                 .clip(ppShape(7.dp))
                 .background(LocalTheme.current.chipBackground)
@@ -1836,7 +1873,9 @@ private fun StoreSearchBar(query: String, onQueryChange: (String) -> Unit, onSub
                 }
             },
         )
-        SmallButton("Search", iconPath = "assets/polyplus/ico/search.svg", primary = true, onClick = onSubmit)
+        if (onSubmit != null) {
+            SmallButton("Search", iconPath = "assets/polyplus/ico/search.svg", primary = true, onClick = onSubmit)
+        }
     }
 }
 
@@ -2270,7 +2309,6 @@ private fun rememberCosmeticItems(refreshKey: Int): List<CosmeticUiItem> =
         val selectedEmote = CosmeticCatalog.selectedEmoteId()
 
         val groupItems = CosmeticCatalog.cosmeticGroupViews()
-            .sortedWith(compareBy<CosmeticGroupView> { it.type.ordinal }.thenBy { it.groupId })
             .map { group ->
                 val byLabel = LinkedHashMap<String, CosmeticVariantUi>()
                 for (variant in group.variants) {
@@ -2292,7 +2330,6 @@ private fun rememberCosmeticItems(refreshKey: Int): List<CosmeticUiItem> =
             }
 
         val emoteItems = CosmeticCatalog.allEmoteDefinitions()
-            .sortedBy { it.id }
             .map { emote ->
                 CosmeticUiItem(
                     groupId = emote.id,
@@ -2306,7 +2343,12 @@ private fun rememberCosmeticItems(refreshKey: Int): List<CosmeticUiItem> =
                 )
             }
 
-        groupItems + emoteItems
+        // equipped items float to the top of the grid; the rest keep type/group order
+        (groupItems + emoteItems).sortedWith(
+            compareByDescending<CosmeticUiItem> { it.equipped }
+                .thenBy { it.type.ordinal }
+                .thenBy { it.groupId },
+        )
     }
 
 private fun selectedVariantId(item: CosmeticUiItem, picks: Map<Int, Int>): Int? =
