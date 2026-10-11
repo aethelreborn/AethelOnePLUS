@@ -61,7 +61,7 @@ public class MixinGameRenderer {
     //?} else {
     /*private void polyplus$disableDynamicFov(CallbackInfoReturnable<Float> cir) {
     *///?}
-        if (!PolyPlusConfig.getDynamicFov()) cir.setReturnValue(1.0F);
+        if (!PolyPlusConfig.getDynamicFov()) cir.setReturnValue(1.0);
     }
     //?}
 
