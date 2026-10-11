@@ -4,10 +4,18 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +55,7 @@ import org.polyfrost.oneconfig.internal.ui.themes.LocalTheme
 import org.polyfrost.oneconfig.internal.ui.themes.Theme
 import org.polyfrost.polyplus.client.PolyPlusClient
 import org.polyfrost.polyplus.client.cosmetics.CosmeticCatalog
+import org.polyfrost.polyplus.client.network.http.responses.CosmeticDefinition
 import org.polyfrost.polyplus.client.cosmetics.CosmeticService
 import org.polyfrost.polyplus.client.emotes.EmoteWheelKeybind
 import kotlin.math.atan2
@@ -134,14 +143,19 @@ class EmoteWheelScreen : ComposeScreen(RenderMode.CONTINUOUS) {
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun EmoteWheelContent(logger: Logger, onRelease: (Int?) -> Unit) {
-    val slots = remember {
-        val ownedIds = CosmeticCatalog.ownedEmoteIds()
-        val owned = CosmeticCatalog.allEmoteDefinitions()
-            .filter { it.id in ownedIds }
+    val owned = remember {
+        CosmeticCatalog.allEmoteDefinitions()
+            .filter { it.id in CosmeticCatalog.ownedEmoteIds() }
             .sortedBy { it.id }
-            .take(SLOT_COUNT)
-            .map { WheelSlot(it.id, it.name) }
-        List(SLOT_COUNT) { index -> owned.getOrNull(index) }
+    }
+
+    if (owned.size > SLOT_COUNT) {
+        EmoteListContent(owned, onRelease)
+        return
+    }
+
+    val slots = remember(owned) {
+        List(SLOT_COUNT) { index -> owned.getOrNull(index)?.let { WheelSlot(it.id, it.name) } }
     }
 
     var mouseXRoot by remember { mutableFloatStateOf(0f) }
@@ -222,6 +236,40 @@ private fun EmoteWheelContent(logger: Logger, onRelease: (Int?) -> Unit) {
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmoteListContent(
+    owned: List<CosmeticDefinition>,
+    onRelease: (Int?) -> Unit,
+) {
+    val scroll = rememberScrollState()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scroll)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        for (emote in owned) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onRelease(emote.id) }
+                    .background(LocalTheme.current.componentBackground)
+                    .padding(12.dp),
+            ) {
+                BasicText(
+                    text = emote.name,
+                    style = TextStyle(
+                        color = LocalTheme.current.textColor,
+                        fontSize = 16.sp,
+                        fontFamily = LocalTheme.current.typography.family,
+                    ),
+                )
             }
         }
     }
