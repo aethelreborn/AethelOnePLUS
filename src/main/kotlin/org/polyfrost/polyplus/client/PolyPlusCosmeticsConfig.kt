@@ -109,6 +109,15 @@ object PolyPlusCosmeticsConfig : Config(
     var aurasVisibility: CosmeticVisibility = CosmeticVisibility.EVERYONE
 
     @JvmStatic
+    @Dropdown(
+        title = "Pets",
+        description = "Choose whose pets you can see.",
+        options = ["Everyone", "Friends Only", "Self", "No One"],
+        subcategory = "Visibility",
+    )
+    var petsVisibility: CosmeticVisibility = CosmeticVisibility.EVERYONE
+
+    @JvmStatic
     @Switch(
         title = "Pet Nametags",
         description = "Show a small floating nametag with the pet owner's name above pets. Viewer-side only.",
@@ -133,7 +142,8 @@ object PolyPlusCosmeticsConfig : Config(
         BodySlot.Backpack -> backsVisibility
         BodySlot.Shoulder -> shouldersVisibility
         BodySlot.Aura -> aurasVisibility
-        BodySlot.Glasses, BodySlot.Pet, BodySlot.Unknown -> CosmeticVisibility.EVERYONE
+        BodySlot.Pet -> petsVisibility
+        BodySlot.Glasses, BodySlot.Unknown -> CosmeticVisibility.EVERYONE
     }
 
     private fun isSelf(owner: UUID): Boolean =
