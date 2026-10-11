@@ -5,8 +5,10 @@ import com.mojang.math.Axis
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.texture.OverlayTexture
+import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import org.polyfrost.polyplus.PolyPlusConstants
+import org.polyfrost.polyplus.client.PolyPlusCosmeticsConfig
 import org.polyfrost.polyplus.client.bedrock.BedrockConstants
 import org.polyfrost.polyplus.client.bedrock.model.BedrockStandaloneModel
 import org.polyfrost.polyplus.client.bedrock.playback.AnimationSampler
@@ -109,6 +111,13 @@ private fun samplePose(
 class PetPose(val from: Map<String, BoneTransform>, val to: Map<String, BoneTransform>, val blend: Float)
 
 //? if > 1.8.9 {
+private const val PET_NAMETAG_MAX_DISTANCE = 4096.0
+
+private fun petNametag(entity: PetEntity): Component =
+    entity.ownerEntity()?.displayName ?: Component.empty()
+//?}
+
+//? if > 1.8.9 {
 //? if >= 1.21.10 {
 class PetRenderState : EntityRenderState() {
     var definition: PetDefinition? = null
@@ -172,7 +181,10 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) : EntityRendere
         state.packedLight = getPackedLightCoords(entity, partialTick)
     }
 
-    override fun shouldShowName(entity: PetEntity, distance: Double): Boolean = false
+    override fun shouldShowName(entity: PetEntity, distance: Double): Boolean =
+        PolyPlusCosmeticsConfig.petNametags && distance < PET_NAMETAG_MAX_DISTANCE
+
+    override fun getNameTag(entity: PetEntity): Component = petNametag(entity)
 
     override fun submit(
         state: PetRenderState,
@@ -218,6 +230,7 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) : EntityRendere
         }
 
         poseStack.popPose()
+        super.submit(state, poseStack, submitNodeCollector, cameraRenderState)
     }
 }
 //?} elif >= 1.21.4 {
@@ -268,7 +281,10 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
         state.textureFrame = if (frameCount > 1) (entity.tickCount / TICKS_PER_TEXTURE_FRAME) % frameCount else 0
     }
 
-    override fun shouldShowName(entity: PetEntity, distance: Double): Boolean = false
+    override fun shouldShowName(entity: PetEntity, distance: Double): Boolean =
+        PolyPlusCosmeticsConfig.petNametags && distance < PET_NAMETAG_MAX_DISTANCE
+
+    override fun getNameTag(entity: PetEntity): Component = petNametag(entity)
 
     override fun render(
         state: PetRenderState,
