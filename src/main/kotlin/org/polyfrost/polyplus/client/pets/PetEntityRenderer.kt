@@ -406,7 +406,8 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
     override fun getTextureLocation(entity: PetEntity): Identifier =
         entity.definition?.texture ?: FALLBACK_TEXTURE
 
-    override fun shouldShowName(entity: PetEntity): Boolean = false
+    override fun shouldShowName(entity: PetEntity): Boolean =
+        PolyPlusCosmeticsConfig.petNametags && !entity.isInvisible()
 
     override fun render(
         entity: PetEntity,
