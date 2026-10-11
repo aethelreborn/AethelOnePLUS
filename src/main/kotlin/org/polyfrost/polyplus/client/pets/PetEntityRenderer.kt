@@ -91,7 +91,7 @@ private fun sampleState(
     val animation = animationName?.let { definition.animations[it] } ?: return emptyMap()
     val elapsedTicks = entity.tickCount + partialTicks
     val timeTicks = BedrockAnimationPlayback.resolveTimeTicks(animation, elapsedTicks)
-    return AnimationSampler.sample(animation, timeTicks, null, molangVariables)
+    return AnimationSampler.sample(animation, timeTicks, entity.renderContext(), molangVariables)
 }
 
 private fun samplePose(
@@ -102,7 +102,7 @@ private fun samplePose(
 ): PetPose {
     val runner = entity.controllerRunner
     if (runner != null) {
-        return PetPose(runner.sample(partialTicks / BedrockConstants.TICKS_PER_SECOND, molangVariables), emptyMap(), 1f)
+        return PetPose(runner.sample(partialTicks / BedrockConstants.TICKS_PER_SECOND, molangVariables, entity.renderContext()), emptyMap(), 1f)
     }
 
     val blend = ((entity.animationBlendTicks + partialTicks) / PetEntity.ANIMATION_BLEND_TICKS).coerceIn(0f, 1f)

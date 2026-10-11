@@ -19,6 +19,7 @@ import org.polyfrost.polyplus.client.bedrock.controller.BedrockAnimationControll
 import org.polyfrost.polyplus.client.cosmetics.PetArchetype
 import org.polyfrost.polyplus.client.cosmetics.PetDefinition
 import org.polyfrost.polyplus.client.network.http.responses.BodySlot
+import org.polyfrost.polyplus.client.render.PlayerRenderContext
 import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -185,6 +186,19 @@ class PetEntity(
         return PolyPlusCosmeticsConfig.isVisible(BodySlot.Pet, owner)
     }
 
+    fun renderContext(): PlayerRenderContext {
+        val moving = animationState == "move"
+        return PlayerRenderContext(
+            ageInTicks = tickCount.toFloat(),
+            walkAnimationSpeed = if (moving) 1f else 0f,
+            isCrouching = isShiftKeyDown,
+            isOnGround = onGround(),
+            isInWater = isInWaterOrBubble,
+            swimAmount = 0f,
+            isInvisible = isInvisible(),
+        )
+    }
+
     override fun isInvisible(): Boolean =
         super.isInvisible() || ownerEntity()?.isInvisible == true || !isVisibleToViewer()
 
@@ -225,6 +239,7 @@ import org.polyfrost.polyplus.client.bedrock.controller.BedrockAnimationControll
 import org.polyfrost.polyplus.client.cosmetics.PetArchetype
 import org.polyfrost.polyplus.client.cosmetics.PetDefinition
 import org.polyfrost.polyplus.client.network.http.responses.BodySlot
+import org.polyfrost.polyplus.client.render.PlayerRenderContext
 import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -371,6 +386,19 @@ class PetEntity(world: World) : LivingEntity(world) {
     fun isVisibleToViewer(): Boolean {
         val owner = ownerUuid ?: return true
         return PolyPlusCosmeticsConfig.isVisible(BodySlot.Pet, owner)
+    }
+
+    fun renderContext(): PlayerRenderContext {
+        val moving = animationState == "move"
+        return PlayerRenderContext(
+            ageInTicks = tickCount.toFloat(),
+            walkAnimationSpeed = if (moving) 1f else 0f,
+            isCrouching = isSneaking,
+            isOnGround = onGround,
+            isInWater = isWet,
+            swimAmount = 0f,
+            isInvisible = isInvisible(),
+        )
     }
 
     override fun isInvisible(): Boolean =
