@@ -67,6 +67,7 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
     @Switch(
         title = "RAM Analysis Notifications",
         description = "Check how much memory this pack actually needs and suggest a change when the current allocation is hurting performance. Shown at most once every two days.",
+        subcategory = "Performance",
     )
     var ramAdviceNotifications = true
 
@@ -176,6 +177,7 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
         title = "Replace Pause Menu LAN Button",
         description = "Replace the vanilla 'Open to LAN' pause menu button with the PolyPlus Host World flow, for hosting your current world over EOS P2P.",
         category = "Multiplayer",
+        subcategory = "Hosting",
     )
     var replacePauseLanButton = true
 
@@ -183,6 +185,7 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
     @Switch(
         title = "PolyPlus User Indicators",
         description = "Show a badge on the nametag, tab list, chat messages, scoreboard, and friends list of players who are using PolyPlus.",
+        subcategory = "Multiplayer",
     )
     var showPolyPlusIndicator = true
 
@@ -190,6 +193,7 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
     @Switch(
         title = "Chat Emoji",
         description = "Render :shortcode: and unicode emoji (e.g. :sob:) as Twemoji images in chat, and suggest them as you type.",
+        subcategory = "Chat",
     )
     var showChatEmoji = true
 
@@ -197,6 +201,7 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
     @Switch(
         title = "Disable Narrator While Muted",
         description = "Skip the narrator entirely while Master or Voice/Speech volume is 0% to prevent lagspikes.",
+        subcategory = "Accessibility",
     )
     var disableNarratorWhileMuted = true
 
@@ -204,6 +209,7 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
     @Switch(
         title = "Automatically Refresh Session",
         description = "Automatically refresh your Microsoft account session when it expires.",
+        subcategory = "Multiplayer",
     )
     var autoRefreshSession = true
 
@@ -237,7 +243,7 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
         true
     }
 
-    @Dropdown(title = "API URL", description = "The URL used for the PolyPlus API. Only change if you know what you're doing.")
+    @Dropdown(title = "API URL", description = "The URL used for the PolyPlus API. Only change if you know what you're doing.", subcategory = "Advanced")
     var apiUrl: BackendUrl = BackendUrl.PRODUCTION
         get() = if (PolyPlusConstants.IS_DEV_ENV) field else BackendUrl.PRODUCTION
 

@@ -401,8 +401,8 @@ class PetEntity(world: World) : LivingEntity(world) {
             isInWater = isInWater(),
             swimAmount = 0f,
             isInvisible = isInvisible(),
-            verticalSpeed = motionY.toFloat(),
-            yawSpeed = Math.abs(yRot - yRotO),
+            verticalSpeed = 0f,
+            yawSpeed = Math.abs(yaw - lastYaw),
             isSprinting = isSprinting(),
         )
     }
