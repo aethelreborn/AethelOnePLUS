@@ -1546,14 +1546,22 @@ object PlayerPreviewRenderer {
 
         val equipment = equipmentFor(source)
         if (equipment.equipped().isNotEmpty()) {
+            // Drive a gentle in-place walk cycle so cosmetics that follow the
+            // limbs (hand items, shoulder pieces, capes) are previewed in motion
+            // instead of a frozen T-pose.
+            val previewTime = (System.nanoTime() / 50_000_000L).toFloat()
+            val walkAmount = 0.55f + 0.45f * kotlin.math.sin(previewTime * 0.12f)
             val renderContext = PlayerRenderContext(
-                ageInTicks = mc.player?.ticks?.toFloat() ?: 0f,
-                walkAnimationSpeed = 0f,
+                ageInTicks = mc.player?.ticks?.toFloat() ?: previewTime,
+                walkAnimationSpeed = walkAmount,
                 isCrouching = false,
-                isOnGround = false,
+                isOnGround = true,
                 isInWater = false,
                 swimAmount = 0f,
                 isInvisible = false,
+                verticalSpeed = 0f,
+                yawSpeed = 0f,
+                isSprinting = false,
             )
             CosmeticRenderer.render(
                 PoseStack(),
