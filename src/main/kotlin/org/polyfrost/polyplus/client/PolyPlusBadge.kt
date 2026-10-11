@@ -84,6 +84,16 @@ object PolyPlusBadge {
         if (!shouldBadge(uuid)) return text
         return Component.empty().append(badgeGlyph).append(text)
     }
+
+    // scoreboard entries never carry a sender, so the owner name is matched against the tab list
+    // the same way chat lines are
+    @JvmStatic
+    fun decorateScoreboardLine(name: Component): Component {
+        if (!PolyPlusConfig.showPolyPlusIndicator) return name
+        val uuid = lookUpPlayerListEntry(name.string) ?: return name
+        if (!shouldBadge(uuid)) return name
+        return Component.empty().append(badgeGlyph).append(name)
+    }
     //?}
 
     //? if >= 1.21.1 || = 1.8.9 {
