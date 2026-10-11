@@ -70,7 +70,12 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
     )
     var ramAdviceNotifications = true
 
-    @JvmStatic @Include
+    @JvmStatic
+    @Switch(
+        title = "Dynamic FOV",
+        description = "Widen your field of view while sprinting. Note: on Minecraft 1.21 and newer this is not currently enforced.",
+        subcategory = "Performance",
+    )
     var dynamicFov = true
 
     @JvmStatic @Include
@@ -169,7 +174,7 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
     @JvmStatic
     @Switch(
         title = "PolyPlus User Indicators",
-        description = "Show a badge on the nametag and tab list of players who are using PolyPlus.",
+        description = "Show a badge on the nametag, tab list, chat messages, scoreboard, and friends list of players who are using PolyPlus.",
     )
     var showPolyPlusIndicator = true
 

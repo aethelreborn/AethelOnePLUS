@@ -5,6 +5,7 @@ import net.minecraft.client.player.AbstractClientPlayer
 import net.minecraft.client.renderer.entity.RenderLayerParent
 import net.minecraft.client.renderer.entity.layers.RenderLayer
 import net.minecraft.world.entity.EquipmentSlot
+import net.minecraft.world.item.Items
 import org.polyfrost.polyplus.client.PolyPlusCosmeticsConfig
 import org.polyfrost.polyplus.client.cosmetics.CosmeticCatalog
 import org.polyfrost.polyplus.client.cosmetics.CosmeticEquipment
@@ -137,6 +138,10 @@ private fun hiddenSlotsFor(player: AbstractClientPlayer): Set<BodySlot> {
     }
     if (PolyPlusCosmeticsConfig.hideFeetCosmeticsWithBoots && !player.getItemBySlot(EquipmentSlot.FEET).isEmpty) {
         hidden += BodySlot.Boots
+    }
+    if (PolyPlusCosmeticsConfig.hideWingsCosmeticsWithElytra && player.getItemBySlot(EquipmentSlot.CHEST).item == Items.ELYTRA) {
+        hidden += BodySlot.Wings
+        hidden += BodySlot.Backpack
     }
     return hidden
 }

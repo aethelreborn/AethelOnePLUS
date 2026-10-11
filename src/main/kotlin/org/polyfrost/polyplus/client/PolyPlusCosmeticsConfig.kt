@@ -26,6 +26,7 @@ object PolyPlusCosmeticsConfig : Config(
     @Switch(
         title = "Hide Head Cosmetics With Helmet",
         description = "Automatically hide hat cosmetics when a helmet is equipped to avoid clipping.",
+        subcategory = "Visibility",
     )
     var hideHeadCosmeticsWithHelmet = false
 
@@ -33,8 +34,17 @@ object PolyPlusCosmeticsConfig : Config(
     @Switch(
         title = "Hide Feet Cosmetics With Boots",
         description = "Automatically hide boots cosmetics when boots are equipped to avoid clipping.",
+        subcategory = "Visibility",
     )
     var hideFeetCosmeticsWithBoots = true
+
+    @JvmStatic
+    @Switch(
+        title = "Hide Wing Cosmetics With Elytra",
+        description = "Automatically hide wing and back cosmetics when an elytra is equipped to avoid clipping.",
+        subcategory = "Visibility",
+    )
+    var hideWingsCosmeticsWithElytra = true
 
     @JvmStatic
     @Dropdown(
@@ -118,6 +128,15 @@ object PolyPlusCosmeticsConfig : Config(
     var petsVisibility: CosmeticVisibility = CosmeticVisibility.EVERYONE
 
     @JvmStatic
+    @Dropdown(
+        title = "Glasses",
+        description = "Choose whose glasses you can see.",
+        options = ["Everyone", "Friends Only", "Self", "No One"],
+        subcategory = "Visibility",
+    )
+    var glassesVisibility: CosmeticVisibility = CosmeticVisibility.EVERYONE
+
+    @JvmStatic
     @Switch(
         title = "Pet Nametags",
         description = "Show a small floating nametag with the pet owner's name above pets. Viewer-side only.",
@@ -143,7 +162,8 @@ object PolyPlusCosmeticsConfig : Config(
         BodySlot.Shoulder -> shouldersVisibility
         BodySlot.Aura -> aurasVisibility
         BodySlot.Pet -> petsVisibility
-        BodySlot.Glasses, BodySlot.Unknown -> CosmeticVisibility.EVERYONE
+        BodySlot.Glasses -> glassesVisibility
+        BodySlot.Unknown -> CosmeticVisibility.EVERYONE
     }
 
     private fun isSelf(owner: UUID): Boolean =
