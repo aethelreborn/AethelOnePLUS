@@ -399,7 +399,9 @@ object CosmeticSync {
             }
 
             // also picks up a new asset hash for one that is already loaded
-            loadInBackground(desiredId)
+            // re-run once it lands: on a cold cache the read below misses and this
+            // slot would otherwise stay bare until the next reconcile tick
+            loadInBackground(desiredId) { reconcileAttachedCosmetics(player, uuid) }
             val attached = CosmeticAssetCache.getAttachedCosmetic(desiredId)?.copy(slot = slot)
             if (attached == null) {
                 // a follow-mode pet renders as its own entity, so a shoulder-mode
