@@ -28,13 +28,13 @@ class MolangContext(
             "time_of_day" -> if (context != null) (context.ageInTicks / BedrockConstants.TICKS_PER_SECOND) % 24000f else 0f
             "is_moving" -> if (context != null) if (context.walkAnimationSpeed > 0.01f) 1f else 0f else 0f
             "ground_speed" -> context?.walkAnimationSpeed ?: 0f
-            "vertical_speed" -> 0f
+            "vertical_speed" -> context?.verticalSpeed ?: 0f
             "is_on_ground" -> if (context != null) if (context.isOnGround) 1f else 0f else 1f
             "is_in_water" -> if (context != null) if (context.isInWater || context.swimAmount > 0.01f) 1f else 0f else 0f
-            "is_jumping" -> 0f
+            "is_jumping" -> if (context != null && !context.isOnGround && context.verticalSpeed > 0.1f) 1f else 0f
             "is_sneaking" -> if (context != null) if (context.isCrouching) 1f else 0f else 0f
-            "is_sprinting" -> if (context != null) if (context.walkAnimationSpeed > 0.12f) 1f else 0f else 0f
-            "yaw_speed" -> 0f
+            "is_sprinting" -> if (context != null) if (context.isSprinting) 1f else 0f else 0f
+            "yaw_speed" -> context?.yawSpeed ?: 0f
             else -> 0f
         }
     }

@@ -20,6 +20,9 @@ data class PlayerRenderContext(
     val isInWater: Boolean,
     val swimAmount: Float,
     val isInvisible: Boolean,
+    val verticalSpeed: Float = 0f,
+    val yawSpeed: Float = 0f,
+    val isSprinting: Boolean = false,
 ) {
     companion object {
         //? if >= 1.21.4 {
