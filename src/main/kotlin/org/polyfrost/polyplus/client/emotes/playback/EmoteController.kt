@@ -6,6 +6,7 @@ import net.minecraft.client.player.AbstractClientPlayer
 /*import net.minecraft.client.entity.living.player.ClientPlayerEntity as AbstractClientPlayer
 import net.minecraft.client.Minecraft
 *///?}
+import org.joml.Vector3f
 import org.polyfrost.polyplus.client.bedrock.animation.BedrockAnimation
 import org.polyfrost.polyplus.client.bedrock.animation.LoopMode
 import org.polyfrost.polyplus.client.bedrock.playback.AnimationSampler
@@ -59,10 +60,17 @@ class EmoteController {
     fun play(emote: Emote) {
         val molangVariables = mutableMapOf<String, Float>()
         AnimationSampler.runInitialize(emote.animation, molangVariables)
+        val fromSample = when (val current = phase) {
+            is Phase.BlendingIn -> current.lastSample
+            is Phase.Playing -> current.lastSample
+            is Phase.BlendingOut -> current.lastSample
+            Phase.Inactive -> null
+        }.takeIf { !it.isNullOrEmpty() }
         phase = Phase.BlendingIn(
             emote = emote,
             startTimeMs = Util.getMillis(),
             molangVariables = molangVariables,
+            fromSample = fromSample,
         )
     }
 
@@ -97,7 +105,13 @@ class EmoteController {
 
         val sample = sampleAnimation(blending.emote.animation, resolvePlayingTime(blending.emote.animation, blending.startTimeMs), renderContext, blending.molangVariables)
         blending.lastSample = sample
-        applyWeighted(model, blending.emote, sample, progress)
+        val from = blending.fromSample
+        if (from != null) {
+            // switching between emotes: crossfade from the outgoing pose into the incoming one
+            applyWeighted(model, blending.emote, lerpSamples(from, sample, progress), 1f)
+        } else {
+            applyWeighted(model, blending.emote, sample, progress)
+        }
 
         if (progress >= 1f) {
             phase = Phase.Playing(
@@ -169,6 +183,36 @@ class EmoteController {
         ModelPoseApplicator.apply(model, sample, weight)
     }
 
+    private fun lerpSamples(
+        from: Map<String, BoneTransform>,
+        to: Map<String, BoneTransform>,
+        t: Float,
+    ): Map<String, BoneTransform> {
+        if (t >= 1f) return to
+        val bones = from.keys + to.keys
+        val result = LinkedHashMap<String, BoneTransform>(bones.size)
+        for (bone in bones) {
+            val a = from[bone]
+            val b = to[bone]
+            result[bone] = when {
+                a == null -> b ?: continue
+                b == null -> a
+                else -> BoneTransform(
+                    position = lerp(a.position, b.position, t),
+                    rotation = lerp(a.rotation, b.rotation, t),
+                    scale = lerp(a.scale, b.scale, t),
+                )
+            }
+        }
+        return result
+    }
+
+    private fun lerp(a: Vector3f, b: Vector3f, t: Float): Vector3f = Vector3f(
+        a.x + (b.x - a.x) * t,
+        a.y + (b.y - a.y) * t,
+        a.z + (b.z - a.z) * t,
+    )
+
     private fun resolvePlayingTime(animation: BedrockAnimation, startTimeMs: Long): Float {
         return BedrockAnimationPlayback.resolveTimeTicks(
             animation = animation,
@@ -184,6 +228,7 @@ class EmoteController {
             val startTimeMs: Long,
             val molangVariables: MutableMap<String, Float>,
             var lastSample: Map<String, BoneTransform> = emptyMap(),
+            val fromSample: Map<String, BoneTransform>? = null,
         ) : Phase()
 
         data class Playing(
