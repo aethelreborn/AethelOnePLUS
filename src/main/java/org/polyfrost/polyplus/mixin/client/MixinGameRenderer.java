@@ -56,16 +56,13 @@ public class MixinGameRenderer {
 
     //? if > 1.8.9 && < 26.1 {
     @Inject(method = "getFov", at = @At("HEAD"), cancellable = true)
-    //? if >= 1.21.11 {
-    private void polyplus$disableDynamicFov(CallbackInfoReturnable<Float> cir) {
-    //?} elif < 1.21.4 {
-    /*private void polyplus$disableDynamicFov(CallbackInfoReturnable<Double> cir) {
-    *///?} else {
+    //? if < 1.21.4 {
+    private void polyplus$disableDynamicFov(CallbackInfoReturnable<Double> cir) {
+    //?} else {
     /*private void polyplus$disableDynamicFov(CallbackInfoReturnable<Float> cir) {
     *///?}
         if (!PolyPlusConfig.getDynamicFov()) cir.setReturnValue(1.0F);
     }
-    //?}
     //?}
 
     //? if >= 26.1 {
