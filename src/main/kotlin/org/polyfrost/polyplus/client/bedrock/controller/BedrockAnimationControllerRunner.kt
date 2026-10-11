@@ -13,11 +13,20 @@ import org.polyfrost.polyplus.client.render.PlayerRenderContext
 class BedrockAnimationControllerRunner(
     private val controller: BedrockAnimationController,
     private val animations: Map<String, BedrockAnimation>,
+    private val blendTicks: Int = 0,
 ) {
     var currentState: String = controller.initialState
         private set
 
+    var blendProgress: Float = 1f
+        private set
+
     private var timeInStateSeconds = 0f
+    private var previousState: String? = null
+    private var timeInPreviousStateSeconds = 0f
+
+    private val blendDurationSeconds: Float
+        get() = blendTicks / BedrockConstants.TICKS_PER_SECOND
 
     fun sample(
         deltaSeconds: Float,
@@ -25,11 +34,33 @@ class BedrockAnimationControllerRunner(
         renderContext: PlayerRenderContext? = null,
     ): Map<String, BoneTransform> {
         timeInStateSeconds += deltaSeconds
+        if (previousState != null) {
+            timeInPreviousStateSeconds += deltaSeconds
+            blendProgress = (blendProgress + deltaSeconds / blendDurationSeconds).coerceIn(0f, 1f)
+        }
         evaluateTransitions(molangVariables, renderContext)
 
-        val state = controller.states[currentState] ?: return emptyMap()
+        val result = sampleState(currentState, timeInStateSeconds, molangVariables, renderContext)
+
+        val previous = previousState ?: return result
+        if (blendProgress >= 1f) {
+            previousState = null
+            return result
+        }
+
+        val previousPose = sampleState(previous, timeInPreviousStateSeconds, molangVariables, renderContext)
+        return crossfade(previousPose, result, blendProgress)
+    }
+
+    private fun sampleState(
+        stateName: String,
+        timeSeconds: Float,
+        molangVariables: MutableMap<String, Float>,
+        renderContext: PlayerRenderContext?,
+    ): Map<String, BoneTransform> {
+        val state = controller.states[stateName] ?: return emptyMap()
         val context = MolangContext.forAnimation(
-            animTimeSeconds = timeInStateSeconds,
+            animTimeSeconds = timeSeconds,
             renderContext = renderContext,
             variables = molangVariables,
         )
@@ -40,7 +71,7 @@ class BedrockAnimationControllerRunner(
             val weight = MolangEvaluator.eval(stateAnimation.weight, context).toFloat().coerceIn(0f, 1f)
             if (weight <= 0f) continue
 
-            val elapsedTicks = timeInStateSeconds * BedrockConstants.TICKS_PER_SECOND
+            val elapsedTicks = timeSeconds * BedrockConstants.TICKS_PER_SECOND
             val timeTicks = BedrockAnimationPlayback.resolveTimeTicks(animation, elapsedTicks)
             val sample = AnimationSampler.sample(
                 animation = animation,
@@ -69,6 +100,11 @@ class BedrockAnimationControllerRunner(
             if (MolangEvaluator.eval(transition.condition, context) == 0.0) continue
 
             MolangEvaluator.execute(state.onExit, context)
+            if (blendTicks > 0 && transition.targetState != currentState) {
+                previousState = currentState
+                timeInPreviousStateSeconds = timeInStateSeconds
+                blendProgress = 0f
+            }
             currentState = transition.targetState
             timeInStateSeconds = 0f
 
@@ -80,6 +116,25 @@ class BedrockAnimationControllerRunner(
             MolangEvaluator.execute(target.onEntry, entryContext)
             return
         }
+    }
+
+    private fun crossfade(
+        previous: Map<String, BoneTransform>,
+        current: Map<String, BoneTransform>,
+        weight: Float,
+    ): Map<String, BoneTransform> {
+        if (previous.isEmpty()) return current
+        if (current.isEmpty()) return previous
+        if (weight <= 0f) return previous
+        if (weight >= 1f) return current
+
+        val result = LinkedHashMap<String, BoneTransform>()
+        for (bone in previous.keys + current.keys) {
+            val from = previous[bone] ?: BoneTransform()
+            val to = current[bone] ?: BoneTransform()
+            result[bone] = lerp(from, to, weight)
+        }
+        return result
     }
 
     private fun blend(base: Map<String, BoneTransform>, add: Map<String, BoneTransform>, weight: Float): Map<String, BoneTransform> {

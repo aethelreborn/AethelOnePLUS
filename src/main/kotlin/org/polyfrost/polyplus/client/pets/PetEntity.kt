@@ -60,7 +60,7 @@ class PetEntity(
         this.definition = definition
         this.ownerUuid = ownerUuid
         this.controllerRunner = definition.controller?.let { controller ->
-            BedrockAnimationControllerRunner(controller, definition.animations)
+            BedrockAnimationControllerRunner(controller, definition.animations, ANIMATION_BLEND_TICKS)
         }
 
         if (definition.archetype == PetArchetype.Walking) {
@@ -271,7 +271,7 @@ class PetEntity(world: World) : LivingEntity(world) {
         this.definition = definition
         this.ownerUuid = ownerUuid
         this.controllerRunner = definition.controller?.let { controller ->
-            BedrockAnimationControllerRunner(controller, definition.animations)
+            BedrockAnimationControllerRunner(controller, definition.animations, ANIMATION_BLEND_TICKS)
         }
         noClip = definition.archetype != PetArchetype.Walking
     }
