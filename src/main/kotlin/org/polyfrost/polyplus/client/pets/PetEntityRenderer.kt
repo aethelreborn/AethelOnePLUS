@@ -182,7 +182,7 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) : EntityRendere
     }
 
     override fun shouldShowName(entity: PetEntity, distance: Double): Boolean =
-        PolyPlusCosmeticsConfig.petNametags && distance < PET_NAMETAG_MAX_DISTANCE
+        PolyPlusCosmeticsConfig.petNametags && distance < PET_NAMETAG_MAX_DISTANCE && !entity.isInvisible()
 
     override fun getNameTag(entity: PetEntity): Component = petNametag(entity)
 
@@ -282,7 +282,7 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
     }
 
     override fun shouldShowName(entity: PetEntity, distance: Double): Boolean =
-        PolyPlusCosmeticsConfig.petNametags && distance < PET_NAMETAG_MAX_DISTANCE
+        PolyPlusCosmeticsConfig.petNametags && distance < PET_NAMETAG_MAX_DISTANCE && !entity.isInvisible()
 
     override fun getNameTag(entity: PetEntity): Component = petNametag(entity)
 

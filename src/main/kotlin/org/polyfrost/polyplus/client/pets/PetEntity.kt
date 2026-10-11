@@ -14,9 +14,11 @@ import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
+import org.polyfrost.polyplus.client.PolyPlusCosmeticsConfig
 import org.polyfrost.polyplus.client.bedrock.controller.BedrockAnimationControllerRunner
 import org.polyfrost.polyplus.client.cosmetics.PetArchetype
 import org.polyfrost.polyplus.client.cosmetics.PetDefinition
+import org.polyfrost.polyplus.client.network.http.responses.BodySlot
 import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -178,7 +180,13 @@ class PetEntity(
 
     override fun mobInteract(player: Player, hand: InteractionHand): InteractionResult = InteractionResult.PASS
 
-    override fun isInvisible(): Boolean = super.isInvisible() || ownerEntity()?.isInvisible == true
+    fun isVisibleToViewer(): Boolean {
+        val owner = ownerUuid ?: return true
+        return PolyPlusCosmeticsConfig.isVisible(BodySlot.Pet, owner)
+    }
+
+    override fun isInvisible(): Boolean =
+        super.isInvisible() || ownerEntity()?.isInvisible == true || !isVisibleToViewer()
 
     override fun isPickable(): Boolean = false
 
@@ -211,9 +219,11 @@ import net.minecraft.entity.living.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.MathHelper
 import net.minecraft.world.World
+import org.polyfrost.polyplus.client.PolyPlusCosmeticsConfig
 import org.polyfrost.polyplus.client.bedrock.controller.BedrockAnimationControllerRunner
 import org.polyfrost.polyplus.client.cosmetics.PetArchetype
 import org.polyfrost.polyplus.client.cosmetics.PetDefinition
+import org.polyfrost.polyplus.client.network.http.responses.BodySlot
 import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -357,7 +367,13 @@ class PetEntity(world: World) : LivingEntity(world) {
 
     override fun isLocallyControlled(): Boolean = true
 
-    override fun isInvisible(): Boolean = super.isInvisible() || ownerEntity()?.isInvisible == true
+    fun isVisibleToViewer(): Boolean {
+        val owner = ownerUuid ?: return true
+        return PolyPlusCosmeticsConfig.isVisible(BodySlot.Pet, owner)
+    }
+
+    override fun isInvisible(): Boolean =
+        super.isInvisible() || ownerEntity()?.isInvisible == true || !isVisibleToViewer()
 
     override fun hasCollision(): Boolean = false
 
