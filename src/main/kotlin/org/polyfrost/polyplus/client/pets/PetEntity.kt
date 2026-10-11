@@ -196,6 +196,9 @@ class PetEntity(
             isInWater = isInWater(),
             swimAmount = 0f,
             isInvisible = isInvisible(),
+            verticalSpeed = getDeltaMovement().y.toFloat(),
+            yawSpeed = Math.abs(yRot - yRotO),
+            isSprinting = isSprinting,
         )
     }
 
@@ -398,6 +401,9 @@ class PetEntity(world: World) : LivingEntity(world) {
             isInWater = isInWater(),
             swimAmount = 0f,
             isInvisible = isInvisible(),
+            verticalSpeed = motionY.toFloat(),
+            yawSpeed = Math.abs(yRot - yRotO),
+            isSprinting = isSprinting(),
         )
     }
 
