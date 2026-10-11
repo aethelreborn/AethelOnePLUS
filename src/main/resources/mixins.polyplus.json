@@ -52,6 +52,8 @@
     "client.MixinPanorama",
     //? if <26.3
     //"client.MixinPauseScreen",
+    //? if > 1.8.9
+    "client.MixinPlayerScoreEntry",
     "client.MixinPlayerTabOverlay",
     //? if = 1.8.9
     //"client.MixinProgressRenderer",
