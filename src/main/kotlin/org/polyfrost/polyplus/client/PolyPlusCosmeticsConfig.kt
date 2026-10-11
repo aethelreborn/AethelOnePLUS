@@ -109,6 +109,14 @@ object PolyPlusCosmeticsConfig : Config(
     var aurasVisibility: CosmeticVisibility = CosmeticVisibility.EVERYONE
 
     @JvmStatic
+    @Switch(
+        title = "Pet Nametags",
+        description = "Show a small floating nametag with the pet owner's name above pets. Viewer-side only.",
+        subcategory = "Visibility",
+    )
+    var petNametags = false
+
+    @JvmStatic
     fun isVisible(slot: BodySlot, owner: UUID): Boolean = when (visibilityFor(slot)) {
         CosmeticVisibility.EVERYONE -> true
         CosmeticVisibility.FRIENDS -> isSelf(owner) || FriendsRepository.isFriend(owner)

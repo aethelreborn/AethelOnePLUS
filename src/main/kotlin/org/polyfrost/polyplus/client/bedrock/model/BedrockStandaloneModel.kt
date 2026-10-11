@@ -18,7 +18,7 @@ class BedrockStandaloneModel private constructor(
 
     companion object {
         fun build(geometry: BedrockGeometry): BedrockStandaloneModel {
-            val builder = BedrockBoneTreeBuilder(geometry, propagateLightLevels = false) { bone ->
+            val builder = BedrockBoneTreeBuilder(geometry, propagateLightLevels = true) { bone ->
                 bedrockPivotOffset(bone.pivot, geometry.bones[bone.parent]?.pivot ?: Vector3f())
             }
 
