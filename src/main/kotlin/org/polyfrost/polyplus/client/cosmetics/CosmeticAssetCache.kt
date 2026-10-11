@@ -120,7 +120,7 @@ object CosmeticAssetCache {
     fun trim(keep: Set<Int>, inUse: Set<Identifier>) {
         var evicted = false
         for ((id, cape) in capes) {
-            if (id in keep || cape.texture in inUse) continue
+            if (id in keep || cape.location in inUse) continue
             capes.remove(id)
             cape.release()
             evicted = true
