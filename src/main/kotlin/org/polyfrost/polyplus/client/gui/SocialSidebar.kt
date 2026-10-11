@@ -30,7 +30,6 @@ import org.polyfrost.oneconfig.internal.ui.themes.LocalTheme
 import org.polyfrost.polyplus.client.network.http.responses.Friend
 import org.polyfrost.polyplus.client.network.http.responses.GroupKind
 import org.polyfrost.polyplus.client.network.http.responses.GroupSummary
-import org.polyfrost.polyplus.client.social.PlayerNamesRepository
 
 internal enum class SocialTab { Chat, Friends, Special }
 
@@ -267,7 +266,7 @@ private fun FriendQuickList(friends: List<Friend>, onSelectFriend: (String) -> U
                         )
                     }
                 }
-                SocialText(PlayerNamesRepository.displayName(friend.player), fontSize = 13.sp)
+                SocialPlayerName(friend.player, fontSize = 13.sp)
             }
         }
     }
