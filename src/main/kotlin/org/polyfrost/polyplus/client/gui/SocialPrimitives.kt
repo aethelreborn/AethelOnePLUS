@@ -42,10 +42,13 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
@@ -60,10 +63,13 @@ import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import org.jetbrains.skia.Image as SkiaImage
 import org.polyfrost.oneconfig.api.ui.v1.keybind.trackTextInputFocus
 import org.polyfrost.oneconfig.internal.ui.components.Icon
 import org.polyfrost.oneconfig.internal.ui.themes.Accent
 import org.polyfrost.oneconfig.internal.ui.themes.LocalTheme
+import org.polyfrost.polyplus.client.PolyPlusBadge
+import org.polyfrost.polyplus.client.social.PlayerNamesRepository
 import java.util.UUID
 
 @Composable
@@ -144,6 +150,56 @@ internal fun SocialText(
             textDecoration = textDecoration,
         ),
     )
+}
+
+/** The badge texture [PolyPlusBadge] blits next to names in the tab list, decoded once for compose surfaces. */
+internal object SocialBadgeAtlas {
+    private const val PATH = "/assets/polyplus/textures/badge.png"
+
+    const val TEX_W = 48
+    const val TEX_H = 45
+
+    val bitmap: ImageBitmap? by lazy {
+        runCatching {
+            val bytes = SocialBadgeAtlas::class.java.getResourceAsStream(PATH)!!.use { it.readBytes() }
+            SkiaImage.makeFromEncoded(bytes).toComposeImageBitmap()
+        }.getOrNull()
+    }
+}
+
+@Composable
+internal fun SocialBadgeGlyph(fontSize: TextUnit, modifier: Modifier = Modifier) {
+    val image = SocialBadgeAtlas.bitmap ?: return
+    if (!fontSize.isSpecified) return
+    val width = fontSize.value.dp * 1.15f
+    Image(
+        image,
+        contentDescription = null,
+        modifier = modifier.width(width).height(width * (SocialBadgeAtlas.TEX_H.toFloat() / SocialBadgeAtlas.TEX_W)),
+        filterQuality = FilterQuality.High,
+    )
+}
+
+/** Player display name with the PolyPlus presence badge, for social lists such as friends and groups. */
+@Composable
+internal fun SocialPlayerName(
+    playerId: String,
+    fontSize: TextUnit,
+    modifier: Modifier = Modifier,
+    color: Color = SocialTextPrimary,
+    fontWeight: FontWeight = FontWeight.Normal,
+    maxLines: Int = Int.MAX_VALUE,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (PolyPlusBadge.shouldBadgeId(playerId)) {
+            SocialBadgeGlyph(fontSize)
+        }
+        SocialText(PlayerNamesRepository.displayName(playerId), fontSize, color = color, fontWeight = fontWeight, maxLines = maxLines)
+    }
 }
 
 @Composable

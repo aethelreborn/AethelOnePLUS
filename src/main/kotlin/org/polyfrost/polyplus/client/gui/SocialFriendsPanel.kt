@@ -195,7 +195,7 @@ private fun FriendCard(friend: Friend, onMessage: () -> Unit, onRemove: () -> Un
             }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            SocialText(PlayerNamesRepository.displayName(friend.player), fontSize = 14.sp)
+            SocialPlayerName(friend.player, fontSize = 14.sp)
             SocialText(if (friend.online) "Online" else "Offline", fontSize = 12.sp, color = if (friend.online) SocialSuccessColor else SocialTextSecondary)
         }
         Box {
@@ -246,7 +246,7 @@ internal fun InviteToGroupDialog(friends: List<Friend>, onInvite: (String) -> Un
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             SocialAvatar(friend.player, 30.dp)
-                            SocialText(PlayerNamesRepository.displayName(friend.player), fontSize = 14.sp, modifier = Modifier.weight(1f))
+                            SocialPlayerName(friend.player, fontSize = 14.sp, modifier = Modifier.weight(1f))
                             SocialIconButton(
                                 icon = if (done) SOCIAL_ASSETS + "check.svg" else SOCIAL_ASSETS + "user-plus-01.svg",
                                 tint = if (done) Color.White else SocialTextPrimary,

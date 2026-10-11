@@ -47,6 +47,11 @@ object PolyPlusBadge {
         PolyPlusConfig.showPolyPlusIndicator &&
             (DEBUG_FORCE || uuid == ClientPlatform.localPlayerUuid() || CosmeticCatalog.isPolyPlusUser(uuid))
 
+    // social lists (friends, groups) carry players as id strings rather than GameProfiles
+    @JvmStatic
+    fun shouldBadgeId(id: String): Boolean =
+        runCatching { UUID.fromString(id) }.getOrNull()?.let { shouldBadge(it) } == true
+
     //? if > 1.8.9 {
     private val FONT: Identifier = Identifier.fromNamespaceAndPath("polyplus", "badge")
 
