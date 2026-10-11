@@ -448,7 +448,7 @@ object CosmeticSync {
 
         if (PetManager.currentPetCosmeticId(uuid) == desiredId) return
 
-        loadInBackground(desiredId)
+        loadInBackground(desiredId) { reconcilePet(uuid) }
         // shoulder pets load as attached cosmetics and are equipped like one instead;
         // only switch once the bundle has actually loaded so a still-downloading
         // follow pet is not torn down mid-swap
@@ -458,11 +458,15 @@ object CosmeticSync {
         }
     }
 
-    private fun loadInBackground(cosmeticId: Int) {
+    private fun loadInBackground(cosmeticId: Int, onLoaded: () -> Unit = {}) {
         if (!loading.add(cosmeticId)) return
         PolyPlusClient.SCOPE.launch {
             try {
                 CosmeticAssetCache.ensureCosmeticLoaded(cosmeticId)
+                // The asset was not in the cache when the caller checked, so the
+                // spawn was skipped. Re-run the caller now that it has landed,
+                // otherwise a freshly equipped pet never appears.
+                onLoaded()
             } finally {
                 loading.remove(cosmeticId)
             }
