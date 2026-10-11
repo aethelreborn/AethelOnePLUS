@@ -144,9 +144,6 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) : EntityRendere
     *///?}
         val mc = Minecraft.getInstance()
         val isOwnPet = entity.ownerUuid == mc.player?.uuid
-        if (mc.options.cameraType.isFirstPerson && isOwnPet) {
-            return false
-        }
         //? if >= 26.3 {
         if (!super.shouldRender(entity, frustum, camX, camY, camZ, partialTicks)) {
         //?} else {
@@ -248,9 +245,6 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
     ): Boolean {
         val mc = Minecraft.getInstance()
         val isOwnPet = entity.ownerUuid == mc.player?.uuid
-        if (mc.options.cameraType.isFirstPerson && isOwnPet) {
-            return false
-        }
         if (!super.shouldRender(entity, frustum, camX, camY, camZ)) {
             return false
         }
@@ -371,9 +365,6 @@ class PetEntityRenderer(context: EntityRendererProvider.Context) :
     override fun shouldRender(entity: PetEntity, view: Culler, cameraX: Double, cameraY: Double, cameraZ: Double): Boolean {
         val mc = Minecraft.getInstance()
         val isOwnPet = entity.ownerUuid == mc.player?.uuid
-        if (mc.options.perspective == 0 && isOwnPet) {
-            return false
-        }
         if (!super.shouldRender(entity, view, cameraX, cameraY, cameraZ)) {
             return false
         }
