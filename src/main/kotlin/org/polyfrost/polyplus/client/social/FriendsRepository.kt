@@ -12,6 +12,7 @@ import org.polyfrost.polyplus.client.network.websocket.ClientboundPacket
 import org.polyfrost.polyplus.events.WebSocketMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -50,6 +51,19 @@ object FriendsRepository {
                 }
                 is ClientboundPacket.FriendRemoved -> {
                     PolyPlusClient.SCOPE.launch { refreshFriends() }
+                }
+                is ClientboundPacket.PlayerPresence -> {
+                    val online = packet.online
+                    val player = packet.player
+                    _friends.update { friends ->
+                        friends.map { friend ->
+                            if (friend.player == player && friend.online != online) {
+                                friend.copy(online = online)
+                            } else {
+                                friend
+                            }
+                        }
+                    }
                 }
                 else -> {}
             }

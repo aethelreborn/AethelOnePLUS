@@ -72,6 +72,14 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
 
     @JvmStatic
     @Switch(
+        title = "Social Notifications",
+        description = "Show desktop notifications for friend requests, group messages, and session invites.",
+        subcategory = "Multiplayer",
+    )
+    var socialNotifications = true
+
+    @JvmStatic
+    @Switch(
         title = "Dynamic FOV",
         description = "Widen your field of view while sprinting. Note: on Minecraft 1.21 and newer this is not currently enforced.",
         subcategory = "Performance",
