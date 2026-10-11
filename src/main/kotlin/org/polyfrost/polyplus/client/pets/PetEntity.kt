@@ -217,6 +217,7 @@ class PetEntity(
 /*import net.minecraft.entity.living.LivingEntity
 import net.minecraft.entity.living.player.PlayerEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.text.Text
 import net.minecraft.util.math.MathHelper
 import net.minecraft.world.World
 import org.polyfrost.polyplus.client.PolyPlusCosmeticsConfig
@@ -374,6 +375,9 @@ class PetEntity(world: World) : LivingEntity(world) {
 
     override fun isInvisible(): Boolean =
         super.isInvisible() || ownerEntity()?.isInvisible == true || !isVisibleToViewer()
+
+    override fun getDisplayName(): Text =
+        ownerEntity()?.displayName ?: super.getDisplayName()
 
     override fun hasCollision(): Boolean = false
 
