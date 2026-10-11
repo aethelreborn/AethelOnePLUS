@@ -145,11 +145,23 @@ class PetEntity(
         return Vec3(cos(yawRad), 0.0, sin(yawRad))
     }
 
+    private fun forwardVector(ownerYRot: Float): Vec3 {
+        val yawRad = Math.toRadians(ownerYRot.toDouble())
+        return Vec3(-sin(yawRad), 0.0, cos(yawRad))
+    }
+
     private fun desiredPosition(ownerPos: Vec3, def: PetDefinition, ownerYRot: Float): Vec3 {
         val left = leftVector(ownerYRot)
         return if (def.archetype == PetArchetype.Flying) {
+            // hover ahead-and-to-the-left at head height so it stays inside the
+            // first-person field of view instead of hanging 90 degrees off to the side
+            val forward = forwardVector(ownerYRot)
             val bob = sin((tickCount + hoverPhase) / 12.0) * 0.15
-            ownerPos.add(left.x * 1.3, 1.4 + bob, left.z * 1.3)
+            ownerPos.add(
+                left.x * 1.1 + forward.x * 0.9,
+                1.55 + bob,
+                left.z * 1.1 + forward.z * 0.9,
+            )
         } else {
             val yawRad = Math.toRadians(ownerYRot.toDouble())
             ownerPos.add(sin(yawRad) * 1.5 + left.x * 0.6, 0.0, -cos(yawRad) * 1.5 + left.z * 0.6)
@@ -326,7 +338,13 @@ class PetEntity(world: World) : LivingEntity(world) {
         val leftZ = sin(yawRad)
         return if (def.archetype == PetArchetype.Flying) {
             val bob = sin((ticks + hoverPhase) / 12.0) * 0.15
-            doubleArrayOf(owner.x + leftX * 1.3, owner.y + 1.4 + bob, owner.z + leftZ * 1.3)
+            val forwardX = -sin(yawRad)
+            val forwardZ = cos(yawRad)
+            doubleArrayOf(
+                owner.x + leftX * 1.1 + forwardX * 0.9,
+                owner.y + 1.55 + bob,
+                owner.z + leftZ * 1.1 + forwardZ * 0.9,
+            )
         } else {
             doubleArrayOf(owner.x + sin(yawRad) * 1.5 + leftX * 0.6, owner.y, owner.z - cos(yawRad) * 1.5 + leftZ * 0.6)
         }
