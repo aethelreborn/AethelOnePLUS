@@ -193,7 +193,7 @@ class PetEntity(
             walkAnimationSpeed = if (moving) 1f else 0f,
             isCrouching = isShiftKeyDown,
             isOnGround = onGround(),
-            isInWater = isInWaterOrBubble,
+            isInWater = isInWater(),
             swimAmount = 0f,
             isInvisible = isInvisible(),
         )
@@ -395,7 +395,7 @@ class PetEntity(world: World) : LivingEntity(world) {
             walkAnimationSpeed = if (moving) 1f else 0f,
             isCrouching = isSneaking,
             isOnGround = onGround,
-            isInWater = isWet,
+            isInWater = isInWater(),
             swimAmount = 0f,
             isInvisible = isInvisible(),
         )
