@@ -104,7 +104,7 @@ object MolangEvaluator {
         return when (root) {
             "query", "q" -> context.query(path.joinToString("_"))
             "variable", "v" -> context.getVariable(path.joinToString("."))
-            "temp", "t" -> context.getVariable("temp.${path.joinToString(".")}")
+            "temp", "t" -> context.getVariable(MOLANG_TEMP_PREFIX + path.joinToString("."))
             else -> context.getVariable(listOf(root, *path.toTypedArray()).joinToString("."))
         }.toDouble()
     }
@@ -114,7 +114,7 @@ object MolangEvaluator {
 
         val key = when (root) {
             "variable", "v" -> member.path.joinToString(".")
-            "temp", "t" -> "temp.${member.path.joinToString(".")}"
+            "temp", "t" -> MOLANG_TEMP_PREFIX + member.path.joinToString(".")
             else -> listOf(root, *member.path.toTypedArray()).joinToString(".")
         }
 
