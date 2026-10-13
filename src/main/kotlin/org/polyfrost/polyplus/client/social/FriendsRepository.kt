@@ -172,6 +172,9 @@ object FriendsRepository {
     }
 
     private fun notifyFriendRequest(requestId: Int, sender: String) {
+        // Incoming requests are listed on the overlay's friends tab, so suppress
+        // the toast while the user is already reading that list.
+        if (SocialOverlay.isOverlayOpen) return
         if (!NotificationDedup.shouldNotify("friend_request:$requestId")) return
         PlayerNamesRepository.resolve(listOf(sender))
         val name = PlayerNamesRepository.nameOr(sender)

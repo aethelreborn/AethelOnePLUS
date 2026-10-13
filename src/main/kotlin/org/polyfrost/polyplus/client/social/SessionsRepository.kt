@@ -88,6 +88,9 @@ object SessionsRepository {
     }
 
     private fun notifyInviteReceived(inviteId: Int, sender: String) {
+        // Pending invites already show up on the overlay's bell badge, so a toast
+        // on top of the panel the user is looking at is pure noise.
+        if (SocialOverlay.isOverlayOpen) return
         if (!NotificationDedup.shouldNotify("session_invite:$inviteId")) return
         PlayerNamesRepository.resolve(listOf(sender))
         val name = PlayerNamesRepository.nameOr(sender)
