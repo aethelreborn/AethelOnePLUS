@@ -90,7 +90,10 @@ object MolangEvaluator {
             "mod" -> {
                 val value = args.getOrElse(0) { 0.0 }
                 val divisor = args.getOrElse(1) { 1.0 }
-                if (divisor == 0.0) 0.0 else value % divisor
+                // Molang's math.mod is floored: the result takes the sign of the
+                // divisor, so math.mod(-3, 5) is 2. Kotlin's % is truncated and
+                // would give -3, which breaks wrap-around counters that dip below 0.
+                if (divisor == 0.0) 0.0 else ((value % divisor) + divisor) % divisor
             }
             else -> 0.0
         }
