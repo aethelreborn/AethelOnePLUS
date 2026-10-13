@@ -47,6 +47,7 @@ import org.polyfrost.polyplus.client.network.p2p.P2PSessionManager
 import org.polyfrost.polyplus.client.social.FriendsRepository
 import org.polyfrost.polyplus.client.social.GroupsRepository
 import org.polyfrost.polyplus.client.social.ChatIdentity
+import org.polyfrost.polyplus.client.social.MutedGroups
 import org.polyfrost.polyplus.client.social.PlayerNamesRepository
 import org.polyfrost.polyplus.client.social.SessionsRepository
 import org.polyfrost.polyplus.client.social.SocialOverlay
@@ -69,7 +70,7 @@ fun SocialOverlayContent(screen: Screen, onClose: () -> Unit) {
     var searchQuery by remember { mutableStateOf("") }
     var unreadOnly by remember { mutableStateOf(false) }
     var specialFilter by remember { mutableStateOf(SpecialChatResponses.Filter.All) }
-    val mutedGroups = remember { mutableStateOf(setOf<Int>()) }
+    var mutedGroups by remember { mutableStateOf(MutedGroups.current()) }
     val renameOverrides = remember { mutableStateOf(mapOf<Int, String>()) }
 
     val localId = remember { ChatIdentity.localId() }
@@ -225,10 +226,11 @@ fun SocialOverlayContent(screen: Screen, onClose: () -> Unit) {
                                     selfId = selfId,
                                     messages = messages,
                                     incomingInvites = incomingInvites,
-                                    mutedGroups = mutedGroups.value,
+                                    mutedGroups = mutedGroups,
                                     renameOverrides = renameOverrides.value,
                                     onToggleMute = { id ->
-                                        mutedGroups.value = if (id in mutedGroups.value) mutedGroups.value - id else mutedGroups.value + id
+                                        MutedGroups.toggle(id)
+                                        mutedGroups = MutedGroups.current()
                                     },
                                     onRename = { id, newName -> renameOverrides.value = renameOverrides.value + (id to newName) },
                                     onInviteToGroup = { inviteToGroupId = group.id },
