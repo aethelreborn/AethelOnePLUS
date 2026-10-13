@@ -62,6 +62,7 @@ import org.joml.Quaternionf
 import org.polyfrost.polyplus.PolyPlusConstants
 import org.polyfrost.polyplus.client.bedrock.BedrockConstants
 import org.polyfrost.polyplus.client.bedrock.model.BedrockStandaloneModel
+import org.polyfrost.polyplus.client.bedrock.molang.clearMolangTemps
 import org.polyfrost.polyplus.client.bedrock.playback.AnimationSampler
 import org.polyfrost.polyplus.client.bedrock.playback.BedrockAnimationPlayback
 import org.polyfrost.polyplus.client.bedrock.playback.BoneTransform
