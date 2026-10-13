@@ -79,7 +79,6 @@ private val INNER_RADIUS = INNER_DIAMETER / 2
 private const val RING_STROKE_W = 1f
 
 private const val SLOT_COUNT = 8
-private const val SECTOR_DEG = 360f / SLOT_COUNT
 
 private val PopInEasing = CubicBezierEasing(0.0f, 0.55f, 0.45f, 1.0f)
 
@@ -158,6 +157,11 @@ private fun EmoteWheelContent(logger: Logger, onRelease: (Int?) -> Unit) {
         List(SLOT_COUNT) { index -> owned.getOrNull(index)?.let { WheelSlot(it.id, it.name) } }
     }
 
+    // Only divide the circle among emotes that actually exist, so a user with two
+    // emotes gets two large sectors instead of two slivers among six dead ones.
+    val sectorCount = owned.size.coerceAtLeast(1)
+    val sectorDeg = 360f / sectorCount
+
     var mouseXRoot by remember { mutableFloatStateOf(0f) }
     var mouseYRoot by remember { mutableFloatStateOf(0f) }
     var rootPos by remember { mutableStateOf(Offset.Zero) }
@@ -171,7 +175,7 @@ private fun EmoteWheelContent(logger: Logger, onRelease: (Int?) -> Unit) {
     val wheelRadiusPx = with(LocalDensity.current) { WHEEL_RADIUS.toPx() }
     val innerRadiusPx = with(LocalDensity.current) { INNER_RADIUS.toPx() }
 
-    val hoveredSlot by remember(mouseXRoot, mouseYRoot, popIn.value) {
+    val hoveredSlot by remember(mouseXRoot, mouseYRoot, popIn.value, sectorCount) {
         derivedStateOf {
             if (popIn.value <= 0.01f) return@derivedStateOf -1
             val cx = wheelBounds.center.x
@@ -181,7 +185,7 @@ private fun EmoteWheelContent(logger: Logger, onRelease: (Int?) -> Unit) {
             val dist = sqrt(dx * dx + dy * dy)
             if (dist in innerRadiusPx * popIn.value..wheelRadiusPx * popIn.value) {
                 val angle = (Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 90f + 360f) % 360f
-                (angle / SECTOR_DEG).toInt().coerceIn(0, SLOT_COUNT - 1)
+                (angle / sectorDeg).toInt().coerceIn(0, sectorCount - 1)
             } else {
                 -1
             }
@@ -214,6 +218,8 @@ private fun EmoteWheelContent(logger: Logger, onRelease: (Int?) -> Unit) {
                 popInValue = popIn.value,
                 hoveredSlot = hoveredSlot,
                 slots = slots,
+                sectorCount = sectorCount,
+                sectorDeg = sectorDeg,
                 onLayout = { wheelBounds = it },
             )
 
@@ -280,6 +286,8 @@ private fun WheelCanvas(
     popInValue: Float,
     hoveredSlot: Int,
     slots: List<WheelSlot?>,
+    sectorCount: Int,
+    sectorDeg: Float,
     onLayout: (Rect) -> Unit,
 ) {
     val accent = Accent
@@ -305,14 +313,14 @@ private fun WheelCanvas(
             val arcSize = Size(midR * 2, midR * 2)
             val center = Offset(cx, cy)
 
-            for (i in 0 until SLOT_COUNT) {
-                val startDeg = -90f + i * SECTOR_DEG
+            for (i in 0 until sectorCount) {
+                val startDeg = -90f + i * sectorDeg
                 val hasEmote = slots.getOrNull(i) != null
                 val isHovered = i == hoveredSlot && hasEmote
 
                 drawArc(
                     color = if (isHovered) accent else if (hasEmote) filledColor else emptyColor,
-                    startAngle = startDeg, sweepAngle = SECTOR_DEG, useCenter = false,
+                    startAngle = startDeg, sweepAngle = sectorDeg, useCenter = false,
                     topLeft = arcTL, size = arcSize, style = Stroke(thickness),
                 )
             }
