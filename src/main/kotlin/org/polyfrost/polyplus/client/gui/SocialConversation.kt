@@ -3,6 +3,7 @@ package org.polyfrost.polyplus.client.gui
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -296,6 +297,7 @@ private fun MessageTimeline(
     }
     val scrollState = remember(conversationId) { ScrollState(0) }
     var contentHeight by remember(conversationId) { mutableStateOf(0) }
+    var editingId by remember(conversationId) { mutableStateOf<Long?>(null) }
     LaunchedEffect(conversationId, contentHeight) {
         scrollState.scrollTo(scrollState.maxValue)
     }
@@ -322,6 +324,14 @@ private fun MessageTimeline(
                 incomingInvites = incomingInvites,
                 showSenderGutter = isGroup && message.sender != selfId,
                 showSender = message.sender != lastSender,
+                editing = editingId == message.id,
+                onStartEdit = { editingId = message.id },
+                onCancelEdit = { editingId = null },
+                onCommitEdit = { newContent ->
+                    GroupsRepository.editMessage(conversationId, message.id, newContent)
+                    editingId = null
+                },
+                onDelete = { GroupsRepository.deleteMessage(conversationId, message.id) },
             )
             lastSender = message.sender
         }
@@ -349,6 +359,11 @@ private fun MessageBubble(
     incomingInvites: List<SessionInvite>,
     showSenderGutter: Boolean = false,
     showSender: Boolean = true,
+    editing: Boolean = false,
+    onStartEdit: () -> Unit = {},
+    onCancelEdit: () -> Unit = {},
+    onCommitEdit: (String) -> Unit = {},
+    onDelete: () -> Unit = {},
 ) {
     val invite = message.sessionInvite
     if (invite != null) {
@@ -357,6 +372,9 @@ private fun MessageBubble(
     }
 
     val pending = GroupsRepository.isPending(message.id)
+    val (hoverInteraction, hovered) = rememberSocialHover()
+    // Pending messages have no server id yet, so there is nothing to edit or delete.
+    val actionable = outgoing && !pending && message.sessionInvite == null
     Row(
         modifier = Modifier.fillMaxWidth().alpha(if (pending) 0.55f else 1f),
         horizontalArrangement = if (outgoing) Arrangement.End else Arrangement.Start,
@@ -381,21 +399,79 @@ private fun MessageBubble(
                         maxLines = 1,
                     )
                 }
-                SocialText(if (pending) "Sending..." else timeFor(message.sentAt), fontSize = 10.sp, color = SocialTextSecondary)
+                val stamp = if (pending) "Sending..." else timeFor(message.sentAt)
+                val suffix = if (message.editedAt != null) "$stamp (edited)" else stamp
+                SocialText(suffix, fontSize = 10.sp, color = SocialTextSecondary)
             }
-            Box(
-                modifier = Modifier
-                    .clip(ppShapeOf(topStart = 14.dp, topEnd = 14.dp, bottomStart = if (outgoing) 14.dp else 3.dp, bottomEnd = if (outgoing) 3.dp else 14.dp))
-                    .background(if (outgoing) Accent.copy(alpha = 0.85f) else SocialCardBackground)
-                    .border(
-                        SocialBorderWidth,
-                        if (outgoing) Accent else SocialBorderColor,
-                        ppShapeOf(topStart = 14.dp, topEnd = 14.dp, bottomStart = if (outgoing) 14.dp else 3.dp, bottomEnd = if (outgoing) 3.dp else 14.dp),
-                    )
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-            ) {
-                SocialEmojiText(message.content, fontSize = 14.sp, color = if (outgoing) Color.White else SocialTextPrimary)
+            if (editing) {
+                MessageEditBox(
+                    initial = message.content,
+                    onCancel = onCancelEdit,
+                    onCommit = onCommitEdit,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .then(if (actionable) Modifier.hoverable(hoverInteraction) else Modifier)
+                        .clip(ppShapeOf(topStart = 14.dp, topEnd = 14.dp, bottomStart = if (outgoing) 14.dp else 3.dp, bottomEnd = if (outgoing) 3.dp else 14.dp))
+                        .background(if (outgoing) Accent.copy(alpha = 0.85f) else SocialCardBackground)
+                        .border(
+                            SocialBorderWidth,
+                            if (outgoing) Accent else SocialBorderColor,
+                            ppShapeOf(topStart = 14.dp, topEnd = 14.dp, bottomStart = if (outgoing) 14.dp else 3.dp, bottomEnd = if (outgoing) 3.dp else 14.dp),
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    SocialEmojiText(message.content, fontSize = 14.sp, color = if (outgoing) Color.White else SocialTextPrimary)
+                }
+                if (actionable && hovered) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        SocialIconButton(
+                            SOCIAL_ASSETS + "edit-02.svg",
+                            tooltip = "Edit",
+                            onClick = onStartEdit,
+                        )
+                        SocialIconButton(
+                            SOCIAL_ASSETS + "trash-01.svg",
+                            tint = SocialDangerColor,
+                            tooltip = "Delete",
+                            onClick = onDelete,
+                        )
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun MessageEditBox(
+    initial: String,
+    onCancel: () -> Unit,
+    onCommit: (String) -> Unit,
+) {
+    var value by remember(initial) { mutableStateOf(initial) }
+    val canSave = value.isNotBlank() && value.trim() != initial.trim()
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        SocialTextField(
+            value = value,
+            onValueChange = { value = it },
+            modifier = Modifier.widthIn(max = 340.dp),
+            placeholder = "Edit message",
+            maxLength = 500,
+            onSubmit = { if (canSave) onCommit(value.trim()) },
+        )
+        Row(
+            modifier = Modifier.align(Alignment.End),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            SocialButton("Cancel", onClick = onCancel)
+            SocialButton(
+                label = "Save",
+                filled = true,
+                enabled = canSave,
+                onClick = { onCommit(value.trim()) },
+            )
         }
     }
 }
