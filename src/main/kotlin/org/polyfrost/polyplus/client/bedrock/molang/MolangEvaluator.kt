@@ -95,6 +95,36 @@ object MolangEvaluator {
                 // would give -3, which breaks wrap-around counters that dip below 0.
                 if (divisor == 0.0) 0.0 else ((value % divisor) + divisor) % divisor
             }
+            // Bedrock rounds halves away from zero, unlike Kotlin's Math.round which
+            // rounds half up, so round(-1.5) must be -2 and not -1.
+            "round" -> roundHalfAwayFromZero(args.getOrElse(0) { 0.0 })
+            "trunc" -> {
+                val value = args.getOrElse(0) { 0.0 }
+                if (value < 0.0) ceil(value) else floor(value)
+            }
+            "sign" -> {
+                val value = args.getOrElse(0) { 0.0 }
+                when {
+                    value > 0.0 -> 1.0
+                    value < 0.0 -> -1.0
+                    else -> 0.0
+                }
+            }
+            "lerpclamp" -> {
+                val start = args.getOrElse(0) { 0.0 }
+                val end = args.getOrElse(1) { 0.0 }
+                val alpha = args.getOrElse(2) { 0.0 }.coerceIn(0.0, 1.0)
+                start + (end - start) * alpha
+            }
+            // Shortest-path angle blend in degrees, so 350 -> 10 goes forward
+            // through 0 rather than backwards through 180.
+            "lerprotate" -> {
+                val start = args.getOrElse(0) { 0.0 }
+                val end = args.getOrElse(1) { 0.0 }
+                val alpha = args.getOrElse(2) { 0.0 }
+                val delta = ((((end - start) + 180.0) % 360.0) + 360.0) % 360.0 - 180.0
+                start + delta * alpha
+            }
             else -> 0.0
         }
 
@@ -130,4 +160,8 @@ object MolangEvaluator {
         "t" -> "temp"
         else -> root.lowercase()
     }
+
+    /** Bedrock's math.round: ties go away from zero, so round(-1.5) == -2. */
+    private fun roundHalfAwayFromZero(value: Double): Double =
+        if (value < 0.0) -floor(-value + 0.5) else floor(value + 0.5)
 }
