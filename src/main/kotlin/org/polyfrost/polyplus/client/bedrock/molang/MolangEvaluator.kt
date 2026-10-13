@@ -47,7 +47,7 @@ object MolangEvaluator {
             MolangExpr.Binary.Op.SUB -> left - right
             MolangExpr.Binary.Op.MUL -> left * right
             MolangExpr.Binary.Op.DIV -> if (right == 0.0) 0.0 else left / right
-            MolangExpr.Binary.Op.MOD -> if (right == 0.0) 0.0 else left % right
+            MolangExpr.Binary.Op.MOD -> flooredMod(left, right)
             MolangExpr.Binary.Op.EQ -> if (left == right) 1.0 else 0.0
             MolangExpr.Binary.Op.NEQ -> if (left != right) 1.0 else 0.0
             MolangExpr.Binary.Op.LT -> if (left < right) 1.0 else 0.0
@@ -88,12 +88,10 @@ object MolangEvaluator {
             "floor" -> floor(args.getOrElse(0) { 0.0 })
             "ceil" -> ceil(args.getOrElse(0) { 0.0 })
             "mod" -> {
-                val value = args.getOrElse(0) { 0.0 }
-                val divisor = args.getOrElse(1) { 1.0 }
                 // Molang's math.mod is floored: the result takes the sign of the
                 // divisor, so math.mod(-3, 5) is 2. Kotlin's % is truncated and
                 // would give -3, which breaks wrap-around counters that dip below 0.
-                if (divisor == 0.0) 0.0 else ((value % divisor) + divisor) % divisor
+                flooredMod(args.getOrElse(0) { 0.0 }, args.getOrElse(1) { 1.0 })
             }
             // Bedrock rounds halves away from zero, unlike Kotlin's Math.round which
             // rounds half up, so round(-1.5) must be -2 and not -1.
@@ -164,4 +162,12 @@ object MolangEvaluator {
     /** Bedrock's math.round: ties go away from zero, so round(-1.5) == -2. */
     private fun roundHalfAwayFromZero(value: Double): Double =
         if (value < 0.0) -floor(-value + 0.5) else floor(value + 0.5)
+
+    /**
+     * Modulo with the sign of the divisor, which is what both Molang's `%` operator
+     * and its math.mod() do. Kotlin's `%` is truncated instead, so (-3 % 5) would be
+     * -3 rather than 2.
+     */
+    private fun flooredMod(value: Double, divisor: Double): Double =
+        if (divisor == 0.0) 0.0 else ((value % divisor) + divisor) % divisor
 }
