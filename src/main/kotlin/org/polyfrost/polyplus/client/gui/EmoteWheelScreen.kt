@@ -148,6 +148,12 @@ private fun EmoteWheelContent(logger: Logger, onRelease: (Int?) -> Unit) {
             .sortedBy { it.id }
     }
 
+    if (owned.isEmpty()) {
+        // Without this the wheel is a single inert ring, which reads as a bug.
+        EmoteEmptyState()
+        return
+    }
+
     if (owned.size > SLOT_COUNT) {
         EmoteListContent(owned, onRelease)
         return
@@ -243,6 +249,34 @@ private fun EmoteWheelContent(logger: Logger, onRelease: (Int?) -> Unit) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EmoteEmptyState() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.widthIn(max = 260.dp),
+        ) {
+            BasicText(
+                text = "No emotes yet",
+                style = TextStyle(
+                    color = LocalTheme.current.textColor,
+                    fontSize = 17.sp,
+                    fontFamily = LocalTheme.current.typography.family,
+                ),
+            )
+            BasicText(
+                text = "Unlock emotes in the PolyPlus cosmetics menu to use them here.",
+                style = TextStyle(
+                    color = LocalTheme.current.textColor.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    fontFamily = LocalTheme.current.typography.family,
+                ),
+            )
         }
     }
 }
