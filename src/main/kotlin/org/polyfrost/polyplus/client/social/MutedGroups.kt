@@ -49,14 +49,12 @@ object MutedGroups {
         PolyPlusConfig.mutedGroupIds = raw
     }
 
-    companion object {
-        /** Blank, malformed and whitespace-padded entries are all tolerated. */
-        fun parse(raw: String): Set<Int> =
-            raw.split(',')
-                .mapNotNull { it.trim().toIntOrNull() }
-                .toSet()
+    /** Blank, malformed and whitespace-padded entries are all tolerated. */
+    fun parse(raw: String): Set<Int> =
+        raw.split(',')
+            .mapNotNull { it.trim().toIntOrNull() }
+            .toSet()
 
-        /** Sorted so the stored value is stable and the cache comparison is meaningful. */
-        fun serialize(ids: Set<Int>): String = ids.sorted().joinToString(",")
-    }
+    /** Sorted so the stored value is stable and the cache comparison is meaningful. */
+    fun serialize(ids: Set<Int>): String = ids.sorted().joinToString(",")
 }
