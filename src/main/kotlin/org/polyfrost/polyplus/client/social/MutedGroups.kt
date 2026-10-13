@@ -47,6 +47,9 @@ object MutedGroups {
         cachedRaw = raw
         cached = ids
         PolyPlusConfig.mutedGroupIds = raw
+        // OneConfig only writes the file when save() is called; assigning a property
+        // is not enough, so mutes would be lost on the next launch without this.
+        PolyPlusConfig.save()
     }
 
     /** Blank, malformed and whitespace-padded entries are all tolerated. */
