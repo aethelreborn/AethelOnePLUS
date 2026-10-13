@@ -11,6 +11,7 @@ import org.polyfrost.polyplus.PolyPlusConstants
 import org.polyfrost.polyplus.client.PolyPlusCosmeticsConfig
 import org.polyfrost.polyplus.client.bedrock.BedrockConstants
 import org.polyfrost.polyplus.client.bedrock.model.BedrockStandaloneModel
+import org.polyfrost.polyplus.client.bedrock.molang.clearMolangTemps
 import org.polyfrost.polyplus.client.bedrock.playback.AnimationSampler
 import org.polyfrost.polyplus.client.bedrock.playback.BedrockAnimationPlayback
 import org.polyfrost.polyplus.client.bedrock.playback.BoneTransform
@@ -100,6 +101,9 @@ private fun samplePose(
     partialTicks: Float,
     molangVariables: MutableMap<String, Float>,
 ): PetPose {
+    // Molang `temp.` is scoped to a single evaluation; clear once per entity per frame
+    // so a temp read that has not been written yet returns 0 rather than a stale value.
+    molangVariables.clearMolangTemps()
     val runner = entity.controllerRunner
     if (runner != null) {
         return PetPose(runner.sample(partialTicks / BedrockConstants.TICKS_PER_SECOND, molangVariables, entity.renderContext()), emptyMap(), 1f)

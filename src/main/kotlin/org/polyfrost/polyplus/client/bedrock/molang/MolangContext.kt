@@ -5,6 +5,22 @@ import org.polyfrost.polyplus.client.bedrock.BedrockConstants
 import org.polyfrost.polyplus.client.render.PlayerRenderContext
 import kotlin.math.PI
 
+/** Key prefix MolangEvaluator uses for `temp.` variables. */
+internal const val MOLANG_TEMP_PREFIX = "temp."
+
+/**
+ * Drops every `temp.` variable from a variable map.
+ *
+ * Molang scopes `temp.` to a single evaluation while `variable.` persists for the
+ * animation's lifetime. Both live in the same map here, so without this a `temp.`
+ * read that has not been written yet in the current frame returns last frame's value
+ * instead of 0. Call once per frame, before evaluating anything.
+ */
+internal fun MutableMap<String, Float>.clearMolangTemps() {
+    if (isEmpty()) return
+    keys.removeAll { it.startsWith(MOLANG_TEMP_PREFIX) }
+}
+
 class MolangContext(
     val animTimeSeconds: Float,
     val lifeTimeSeconds: Float = 0f,

@@ -5,6 +5,7 @@ import org.polyfrost.polyplus.client.bedrock.BedrockConstants
 import org.polyfrost.polyplus.client.bedrock.animation.BedrockAnimation
 import org.polyfrost.polyplus.client.bedrock.molang.MolangContext
 import org.polyfrost.polyplus.client.bedrock.molang.MolangEvaluator
+import org.polyfrost.polyplus.client.bedrock.molang.clearMolangTemps
 import org.polyfrost.polyplus.client.bedrock.playback.AnimationSampler
 import org.polyfrost.polyplus.client.bedrock.playback.BedrockAnimationPlayback
 import org.polyfrost.polyplus.client.bedrock.playback.BoneTransform
@@ -33,6 +34,9 @@ class BedrockAnimationControllerRunner(
         molangVariables: MutableMap<String, Float>,
         renderContext: PlayerRenderContext? = null,
     ): Map<String, BoneTransform> {
+        // `temp.` is scoped to one evaluation; `variable.` is not. Everything below
+        // this frame shares the map, so clear once here rather than per call site.
+        molangVariables.clearMolangTemps()
         timeInStateSeconds += deltaSeconds
         if (previousState != null) {
             timeInPreviousStateSeconds += deltaSeconds
