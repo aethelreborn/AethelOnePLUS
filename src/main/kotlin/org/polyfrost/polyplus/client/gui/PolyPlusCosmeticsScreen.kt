@@ -54,6 +54,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -97,6 +98,7 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import org.apache.logging.log4j.LogManager
 import org.polyfrost.oneconfig.api.ui.v1.OneConfigUI
 import org.polyfrost.oneconfig.api.ui.v1.keybind.trackTextInputFocus
 import org.polyfrost.oneconfig.internal.ui.components.Icon
@@ -129,6 +131,7 @@ import java.time.OffsetDateTime
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
@@ -298,6 +301,7 @@ private fun PolyPlusCosmeticsScreen() {
     var tabResolved by remember { mutableStateOf(false) }
     var showCart by remember { mutableStateOf(false) }
     var refreshKey by remember { mutableIntStateOf(0) }
+    var purchasePollUntil by remember { mutableLongStateOf(0L) }
     var manualRefreshKey by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf<String?>(null) }
     val cart = remember { mutableStateListOf<CartEntry>() }
@@ -327,6 +331,25 @@ private fun PolyPlusCosmeticsScreen() {
         }
     }
 
+    // Checkout finishes in the browser and the server pushes equipped cosmetics but never
+    // ownership, so after one is opened ask for our cosmetics again until something new
+    // shows up. Bounded so an abandoned checkout cannot poll forever.
+    LaunchedEffect(purchasePollUntil) {
+        val deadline = purchasePollUntil
+        if (deadline <= 0L) return@LaunchedEffect
+        while (isActive && System.currentTimeMillis() <= deadline) {
+            delay(PURCHASE_POLL_INTERVAL_MS)
+            val before = CosmeticCatalog.ownedIds()
+            runCatching { CosmeticCatalog.refreshPlayer() }
+                .onFailure { STORE_LOG.debug("Post-purchase cosmetics refresh failed", it) }
+            if (CosmeticCatalog.ownedIds() != before) {
+                refreshKey++
+                return@LaunchedEffect
+            }
+        }
+        purchasePollUntil = 0L
+    }
+
     fun checkout() {
         val productIds = cart.mapNotNull { it.storeProductId }
         if (productIds.isEmpty()) {
@@ -338,7 +361,13 @@ private fun PolyPlusCosmeticsScreen() {
             val result = BillingService.checkoutAndOpen(productIds)
             ClientPlatform.runOnMain {
                 status = result.fold(
-                    onSuccess = { "Checkout opened in your browser." },
+                    onSuccess = {
+                        // Checkout finishes in the browser, and the server pushes equipped
+                        // cosmetics but never ownership, so poll for a bounded window or the
+                        // purchase silently waits for a restart.
+                        purchasePollUntil = System.currentTimeMillis() + PURCHASE_POLL_WINDOW_MS
+                        "Checkout opened in your browser."
+                    },
                     onFailure = ::checkoutFailureMessage,
                 )
             }
@@ -1142,6 +1171,14 @@ private fun VariantPicker(
 }
 
 private val PILL_RADIUS = 18.dp
+
+/** How long to keep asking the server for newly owned cosmetics after checkout opens. */
+private const val PURCHASE_POLL_WINDOW_MS = 5L * 60L * 1000L
+
+/** Spacing between those checks; deliberately slow so an abandoned checkout stays cheap. */
+private const val PURCHASE_POLL_INTERVAL_MS = 10L * 1000L
+
+private val STORE_LOG = LogManager.getLogger("PolyPlus/Store")
 
 private val VARIANT_WHEEL_STEP = 48.dp
 
