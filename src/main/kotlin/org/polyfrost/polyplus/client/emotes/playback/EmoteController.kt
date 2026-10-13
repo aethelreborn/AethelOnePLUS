@@ -9,6 +9,7 @@ import net.minecraft.client.Minecraft
 import org.joml.Vector3f
 import org.polyfrost.polyplus.client.bedrock.animation.BedrockAnimation
 import org.polyfrost.polyplus.client.bedrock.animation.LoopMode
+import org.polyfrost.polyplus.client.bedrock.molang.clearMolangTemps
 import org.polyfrost.polyplus.client.bedrock.playback.AnimationSampler
 import org.polyfrost.polyplus.client.bedrock.playback.BedrockAnimationPlayback
 import org.polyfrost.polyplus.client.bedrock.playback.BoneTransform
@@ -160,6 +161,9 @@ class EmoteController {
         renderContext: PlayerRenderContext,
         molangVariables: MutableMap<String, Float>,
     ): Map<String, BoneTransform> {
+        // Molang `temp.` is scoped to a single evaluation while `variable.` lives for
+        // the whole emote, and this map outlives one frame. Called once per frame.
+        molangVariables.clearMolangTemps()
         return AnimationSampler.sample(
             animation = animation,
             timeTicks = timeTicks,
