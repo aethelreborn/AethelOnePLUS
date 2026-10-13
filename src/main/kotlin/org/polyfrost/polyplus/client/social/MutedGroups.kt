@@ -36,18 +36,27 @@ object MutedGroups {
     fun current(): Set<Int> {
         val raw = PolyPlusConfig.mutedGroupIds
         if (raw == cachedRaw) return cached
-        val parsed = raw.split(',')
-            .mapNotNull { it.trim().toIntOrNull() }
-            .toSet()
+        val parsed = parse(raw)
         cachedRaw = raw
         cached = parsed
         return parsed
     }
 
     private fun write(ids: Set<Int>) {
-        val raw = ids.sorted().joinToString(",")
+        val raw = serialize(ids)
         cachedRaw = raw
         cached = ids
         PolyPlusConfig.mutedGroupIds = raw
+    }
+
+    companion object {
+        /** Blank, malformed and whitespace-padded entries are all tolerated. */
+        fun parse(raw: String): Set<Int> =
+            raw.split(',')
+                .mapNotNull { it.trim().toIntOrNull() }
+                .toSet()
+
+        /** Sorted so the stored value is stable and the cache comparison is meaningful. */
+        fun serialize(ids: Set<Int>): String = ids.sorted().joinToString(",")
     }
 }
