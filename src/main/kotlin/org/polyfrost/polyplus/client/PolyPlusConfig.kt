@@ -79,6 +79,13 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
     )
     var socialNotifications = true
 
+    /**
+     * Comma-separated ids of groups the user muted. Kept as a string rather than a
+     * collection so it serialises identically on every supported game version.
+     */
+    @JvmStatic @Include
+    var mutedGroupIds: String = ""
+
     @JvmStatic
     @Switch(
         title = "Dynamic FOV",
