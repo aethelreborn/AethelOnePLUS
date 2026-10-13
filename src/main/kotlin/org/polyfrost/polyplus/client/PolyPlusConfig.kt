@@ -90,7 +90,8 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
     @JvmStatic
     @Switch(
         title = "Dynamic FOV",
-        description = "Widen your field of view while sprinting. Note: on Minecraft 1.21 and newer this is not currently enforced.",
+        description = "Let Minecraft change your field of view for sprinting, ladders, water and speed effects. " +
+            "Turn this off for a fixed field of view. Note: not available on Minecraft 1.21.10 and newer.",
         subcategory = "Performance",
     )
     var dynamicFov = true
@@ -183,7 +184,9 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", "${PolyPlusConsta
     @JvmStatic
     @Switch(
         title = "Replace Pause Menu LAN Button",
-        description = "Replace the vanilla 'Open to LAN' pause menu button with the PolyPlus Host World flow, for hosting your current world over EOS P2P.",
+        description = "Replace the vanilla 'Open to LAN' pause menu button with the PolyPlus Host World flow, for hosting " +
+            "your current world over EOS P2P. Note: this only applies on Minecraft 26.3 and newer — on other versions " +
+            "bind the Host Current World keybind to reach the same flow.",
         category = "Multiplayer",
         subcategory = "Hosting",
     )
