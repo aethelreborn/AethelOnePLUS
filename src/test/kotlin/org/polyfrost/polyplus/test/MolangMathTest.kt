@@ -93,4 +93,56 @@ class MolangMathTest {
         assertEquals(0.0, call("die_roll", 0.0, 6.0, 1.0, context = MolangContext(0f, randomState = 1L)), 1e-9)
         assertEquals(0.0, call("die_roll_integer", 0.0, 6.0, 1.0, context = MolangContext(0f, randomState = 1L)), 1e-9)
     }
+
+    @Test
+    fun `inverse trig returns degrees`() {
+        assertEquals(90.0, call("asin", 1.0), 1e-9)
+        assertEquals(0.0, call("acos", 1.0), 1e-9)
+        assertEquals(45.0, call("atan", 1.0), 1e-9)
+        assertEquals(45.0, call("atan2", 1.0, 1.0), 1e-9)
+        assertEquals(90.0, call("atan2", 1.0, 0.0), 1e-9)
+    }
+
+    @Test
+    fun `inverse trig coerces out-of-domain input to a real angle`() {
+        // Float accumulation can push sin slightly past 1; must not yield NaN.
+        assertEquals(90.0, call("asin", 1.0001), 1e-9)
+        assertEquals(0.0, call("acos", 1.0001), 1e-9)
+        assertEquals(-90.0, call("asin", -1.0001), 1e-9)
+    }
+
+    @Test
+    fun `tan matches degrees semantics`() {
+        assertEquals(1.0, call("tan", 45.0), 1e-9)
+        assertEquals(0.0, call("tan", 0.0), 1e-9)
+    }
+
+    @Test
+    fun `cbrt and exp handle negatives and zero`() {
+        assertEquals(2.0, call("cbrt", 8.0), 1e-9)
+        assertEquals(-2.0, call("cbrt", -8.0), 1e-9)
+        assertEquals(0.0, call("cbrt", 0.0), 1e-9)
+        assertEquals(1.0, call("exp", 0.0), 1e-9)
+    }
+
+    @Test
+    fun `ln and log10 return zero for non-positive input`() {
+        assertEquals(0.0, call("ln", 0.0), 1e-9)
+        assertEquals(0.0, call("ln", -5.0), 1e-9)
+        assertEquals(0.0, call("log10", 0.0), 1e-9)
+        assertEquals(0.0, call("log10", -1.0), 1e-9)
+        assertEquals(1.0, call("ln", Math.E), 1e-9)
+        assertEquals(2.0, call("log10", 100.0), 1e-9)
+    }
+
+    @Test
+    fun `lerpangle takes the shortest path and wraps into 0 to 360`() {
+        // 350 -> 10 is +20 forward through 0, not -340 backward.
+        assertEquals(0.0, call("lerpangle", 350.0, 10.0, 0.5), 1e-9)
+        assertEquals(350.0, call("lerpangle", 350.0, 10.0, 0.0), 1e-9)
+        assertEquals(10.0, call("lerpangle", 350.0, 10.0, 1.0), 1e-9)
+        // Result stays in [0, 360) even when start is out of range.
+        val wrapped = call("lerpangle", 720.0, 90.0, 0.0)
+        assertTrue(wrapped in 0.0..<360.0, "lerpangle wrapped=$wrapped out of [0,360)")
+    }
 }
