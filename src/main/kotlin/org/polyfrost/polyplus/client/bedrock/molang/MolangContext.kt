@@ -27,6 +27,8 @@ class MolangContext(
     val deltaTimeSeconds: Float = 1f / BedrockConstants.TICKS_PER_SECOND,
     private val variables: MutableMap<String, Float> = mutableMapOf(),
     private val renderContext: PlayerRenderContext? = null,
+    /** Mutable LCG state shared across evaluations so math.random/die_roll are deterministic per context. */
+    var randomState: Long = 0L,
 ) {
 
     fun setVariable(name: String, value: Float) {

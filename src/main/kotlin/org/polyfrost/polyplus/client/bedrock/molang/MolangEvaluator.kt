@@ -123,6 +123,44 @@ object MolangEvaluator {
                 val delta = ((((end - start) + 180.0) % 360.0) + 360.0) % 360.0 - 180.0
                 start + delta * alpha
             }
+            // Hermite smoothstep: 0 at start, 1 at end, with zero derivative at
+            // both ends so the blend eases in and out rather than moving linearly.
+            "hermite_blend" -> {
+                val start = args.getOrElse(0) { 0.0 }
+                val end = args.getOrElse(1) { 1.0 }
+                val value = args.getOrElse(2) { 0.0 }
+                if (end == start) {
+                    if (value >= end) 1.0 else 0.0
+                } else {
+                    val t = ((value - start) / (end - start)).coerceIn(0.0, 1.0)
+                    t * t * (3.0 - 2.0 * t)
+                }
+            }
+            // Rolls `total` dice of `side` faces, `rounds` times, and returns the
+            // average of the round sums. Deterministic per seed so the same
+            // animation replay produces the same values.
+            "die_roll" -> {
+                val total = args.getOrElse(0) { 1.0 }.toInt().coerceAtLeast(0)
+                val side = args.getOrElse(1) { 1.0 }.toInt().coerceAtLeast(1)
+                val rounds = args.getOrElse(2) { 1.0 }.toInt().coerceAtLeast(1)
+                dieRoll(total, side, rounds, context).toDouble() / total.coerceAtLeast(1)
+            }
+            "die_roll_integer" -> {
+                val total = args.getOrElse(0) { 1.0 }.toInt().coerceAtLeast(0)
+                val side = args.getOrElse(1) { 1.0 }.toInt().coerceAtLeast(1)
+                val rounds = args.getOrElse(2) { 1.0 }.toInt().coerceAtLeast(1)
+                dieRoll(total, side, rounds, context).toDouble()
+            }
+            "random" -> {
+                val from = args.getOrElse(0) { 0.0 }
+                val to = args.getOrElse(1) { 1.0 }
+                from + nextRandom(context) * (to - from)
+            }
+            "random_integer" -> {
+                val from = args.getOrElse(0) { 0.0 }.toInt()
+                val to = args.getOrElse(1) { 1.0 }.toInt()
+                if (to <= from) from.toDouble() else (from + nextRandom(context).toInt() % (to - from + 1)).toDouble()
+            }
             else -> 0.0
         }
 
@@ -170,4 +208,31 @@ object MolangEvaluator {
      */
     private fun flooredMod(value: Double, divisor: Double): Double =
         if (divisor == 0.0) 0.0 else ((value % divisor) + divisor) % divisor
+
+    /**
+     * Rolls `total` dice of `side` faces across `rounds` rounds and returns the
+     * sum of all rolls. Each round is independent, so die_roll(2, 6, 3) sums six
+     * values in [1, 6]. Deterministic per seed: the same seed and call sequence
+     * always produce the same rolls.
+     */
+    private fun dieRoll(total: Int, side: Int, rounds: Int, context: MolangContext): Int {
+        var sum = 0
+        repeat(rounds) {
+            repeat(total) {
+                sum += 1 + (nextRandom(context) * side).toInt()
+            }
+        }
+        return sum
+    }
+
+    /**
+     * Returns the next pseudo-random value in [0, 1) for this evaluation context.
+     * Bedrock seeds Molang RNG from the animation's seed so the same animation
+     * replay produces identical values; without a fixed seed this falls back to
+     * a per-context LCG advanced by call order.
+     */
+    private fun nextRandom(context: MolangContext): Double {
+        context.randomState = (context.randomState * 6364136223846793005L + 1442695040888963407L) and Long.MAX_VALUE
+        return (context.randomState ushr 11).toDouble() / (1L shl 53).toDouble()
+    }
 }
