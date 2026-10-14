@@ -1,14 +1,23 @@
 package org.polyfrost.polyplus.client.bedrock.molang
 
 import kotlin.math.abs
+import kotlin.math.acos
+import kotlin.math.asin
+import kotlin.math.atan
+import kotlin.math.atan2
+import kotlin.math.cbrt
 import kotlin.math.ceil
 import kotlin.math.cos
+import kotlin.math.exp
 import kotlin.math.floor
+import kotlin.math.ln
+import kotlin.math.log10
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.math.tan
 
 object MolangEvaluator {
     fun execute(statements: List<MolangStatement>, context: MolangContext) {
@@ -160,6 +169,29 @@ object MolangEvaluator {
                 val from = args.getOrElse(0) { 0.0 }.toInt()
                 val to = args.getOrElse(1) { 1.0 }.toInt()
                 if (to <= from) from.toDouble() else (from + nextRandom(context).toInt() % (to - from + 1)).toDouble()
+            }
+            // Inverse trig returns degrees to match sin/cos taking degrees. Inputs
+            // are coerced to the valid domain so a slightly-out-of-range value from
+            // accumulated float error yields a real angle instead of NaN.
+            "asin" -> Math.toDegrees(asin(args.getOrElse(0) { 0.0 }.coerceIn(-1.0, 1.0)))
+            "acos" -> Math.toDegrees(acos(args.getOrElse(0) { 0.0 }.coerceIn(-1.0, 1.0)))
+            "atan" -> Math.toDegrees(atan(args.getOrElse(0) { 0.0 }))
+            "atan2" -> Math.toDegrees(atan2(args.getOrElse(0) { 0.0 }, args.getOrElse(1) { 0.0 }))
+            "tan" -> tan(Math.toRadians(args.getOrElse(0) { 0.0 }))
+            "cbrt" -> cbrt(args.getOrElse(0) { 0.0 })
+            "exp" -> exp(args.getOrElse(0) { 0.0 })
+            // Log of zero or a negative is undefined; Bedrock yields 0 rather than
+            // -inf/NaN so a broken expression degrades gracefully.
+            "ln" -> if (args.getOrElse(0) { 0.0 } > 0.0) ln(args.getOrElse(0) { 0.0 }) else 0.0
+            "log10" -> if (args.getOrElse(0) { 0.0 } > 0.0) log10(args.getOrElse(0) { 0.0 }) else 0.0
+            // Like lerprotate but wraps the result into [0, 360) so callers that
+            // feed it straight into a rotation do not accumulate out-of-range angles.
+            "lerpangle" -> {
+                val start = args.getOrElse(0) { 0.0 }
+                val end = args.getOrElse(1) { 0.0 }
+                val alpha = args.getOrElse(2) { 0.0 }
+                val delta = ((((end - start) + 180.0) % 360.0) + 360.0) % 360.0 - 180.0
+                ((start + delta * alpha) % 360.0 + 360.0) % 360.0
             }
             else -> 0.0
         }
