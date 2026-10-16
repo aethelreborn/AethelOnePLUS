@@ -53,9 +53,21 @@ class MolangContext(
             "is_sneaking" -> if (context != null) if (context.isCrouching) 1f else 0f else 0f
             "is_sprinting" -> if (context != null) if (context.isSprinting) 1f else 0f else 0f
             "yaw_speed" -> context?.yawSpeed ?: 0f
+            // Bedrock rotations are degrees. head_y_rotation answers the head
+            // yaw relative to the body, which is what emote math needs to swing
+            // the head; body_y_rotation is the absolute 0..360 the body faces;
+            // head_x_rotation is the pitch. The index argument Bedrock queries
+            // take selects between multiple heads, which players do not have.
+            "head_y_rotation" -> if (context != null) wrapDegrees(context.headYawDeg - context.bodyYawDeg) else 0f
+            "head_x_rotation" -> context?.headPitchDeg ?: 0f
+            "body_y_rotation" -> if (context != null) wrap360(context.bodyYawDeg) else 0f
             else -> 0f
         }
     }
+
+    private fun wrapDegrees(value: Float): Float = (((value + 180f) % 360f) + 360f) % 360f - 180f
+
+    private fun wrap360(value: Float): Float = ((value % 360f) + 360f) % 360f
 
     companion object {
         fun forAnimation(

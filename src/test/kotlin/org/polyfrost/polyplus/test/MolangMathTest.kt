@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.polyfrost.polyplus.client.bedrock.molang.MolangContext
 import org.polyfrost.polyplus.client.bedrock.molang.MolangEvaluator
 import org.polyfrost.polyplus.client.bedrock.molang.MolangExpr
+import org.polyfrost.polyplus.client.render.PlayerRenderContext
 import kotlin.math.floor
 
 class MolangMathTest {
@@ -186,6 +187,55 @@ class MolangMathTest {
         // Result stays in [0, 360) even when start is out of range.
         val wrapped = call("lerpangle", 720.0, 90.0, 0.0)
         assertTrue(wrapped in 0.0..<360.0, "lerpangle wrapped=$wrapped out of [0,360)")
+    }
+
+    private fun renderContext(
+        headYawDeg: Float = 0f,
+        bodyYawDeg: Float = 0f,
+        headPitchDeg: Float = 0f,
+    ) = PlayerRenderContext(
+        ageInTicks = 0f,
+        walkAnimationSpeed = 0f,
+        isCrouching = false,
+        isOnGround = true,
+        isInWater = false,
+        swimAmount = 0f,
+        isInvisible = false,
+        headYawDeg = headYawDeg,
+        bodyYawDeg = bodyYawDeg,
+        headPitchDeg = headPitchDeg,
+    )
+
+    @Test
+    fun `rotation queries read the render context in degrees`() {
+        val context = MolangContext.forAnimation(0f, renderContext = renderContext(90f, 30f, 45f))
+        assertEquals(60f, context.query("head_y_rotation"), 1e-6f)
+        assertEquals(30f, context.query("body_y_rotation"), 1e-6f)
+        assertEquals(45f, context.query("head_x_rotation"), 1e-6f)
+    }
+
+    @Test
+    fun `rotation queries wrap into their Bedrock ranges`() {
+        // Head 350 against body 10 is a -20 degree turn, not +340.
+        val context = MolangContext.forAnimation(0f, renderContext = renderContext(350f, 10f))
+        assertEquals(-20f, context.query("head_y_rotation"), 1e-6f)
+        // Body yaw comes back as 0..360 even past a full turn.
+        val spun = MolangContext.forAnimation(0f, renderContext = renderContext(0f, 370f))
+        assertEquals(10f, spun.query("body_y_rotation"), 1e-6f)
+        val negative = MolangContext.forAnimation(0f, renderContext = renderContext(0f, -30f))
+        assertEquals(330f, negative.query("body_y_rotation"), 1e-6f)
+    }
+
+    @Test
+    fun `query calls with arguments reach the query table`() {
+        // query.head_y_rotation(0) used to fall through to 0; the index is a
+        // head selector we do not model, so it is ignored.
+        val expr = MolangExpr.Call(
+            callee = MolangExpr.Member("query", listOf("head_y_rotation")),
+            args = listOf(MolangExpr.Number(0.0)),
+        )
+        val context = MolangContext.forAnimation(0f, renderContext = renderContext(90f, 30f))
+        assertEquals(60.0, MolangEvaluator.eval(expr, context), 1e-6)
     }
 
     private val easeNames = listOf(

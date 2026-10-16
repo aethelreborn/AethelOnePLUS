@@ -70,6 +70,14 @@ object MolangEvaluator {
     }
 
     private fun evalCall(expression: MolangExpr.Call, context: MolangContext): Double {
+        // Bedrock writes queries with arguments too (query.head_y_rotation(0));
+        // route those to the same table as the bare member form before the
+        // math dispatch, which would not recognise them. The arguments are
+        // selectors, not inputs, so they are skipped rather than evaluated.
+        if (normalizeRoot(expression.callee.root) == "query") {
+            return context.query(expression.callee.path.joinToString("_"))
+        }
+
         val args = expression.args.map { eval(it, context) }
 
         val name = expression.callee.path.lastOrNull()?.lowercase()
