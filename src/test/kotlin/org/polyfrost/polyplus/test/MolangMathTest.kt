@@ -290,6 +290,29 @@ class MolangMathTest {
         assertEquals(7.0, MolangEvaluator.eval(MolangParser.parseExpression("math.max((temp.a ?? 7.0), 0.0)"), context), 1e-9)
     }
 
+    @Test
+    fun `return stops statement execution and answers the value`() {
+        val context = MolangContext(0f)
+        val statements = MolangParser.parseStatements("variable.x = 1; return 2; variable.x = 3;")
+        assertEquals(2.0, MolangEvaluator.execute(statements, context), 1e-9)
+        assertEquals(1f, context.getVariable("x"), 1e-9f)
+    }
+
+    @Test
+    fun `a block without return executes fully and answers zero`() {
+        val context = MolangContext(0f)
+        val statements = MolangParser.parseStatements("variable.x = 1; variable.x = variable.x + 2;")
+        assertEquals(0.0, MolangEvaluator.execute(statements, context), 1e-9)
+        assertEquals(3f, context.getVariable("x"), 1e-9f)
+    }
+
+    @Test
+    fun `a single statement block may be a return`() {
+        val context = MolangContext(0f)
+        val statements = MolangParser.parseStatementBlock("return 4;")
+        assertEquals(4.0, MolangEvaluator.execute(statements, context), 1e-9)
+    }
+
     private val easeNames = listOf(
         "ease_in_sine", "ease_out_sine", "ease_in_out_sine",
         "ease_in_quad", "ease_out_quad", "ease_in_out_quad",

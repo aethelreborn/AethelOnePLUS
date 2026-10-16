@@ -21,12 +21,23 @@ import kotlin.math.sqrt
 import kotlin.math.tan
 
 object MolangEvaluator {
-    fun execute(statements: List<MolangStatement>, context: MolangContext) {
+    /**
+     * Runs a statement block. Bedrock: a block answers 0.0 unless a `return`
+     * statement ends it, in which case the returned value is the block's value
+     * and no later statement executes.
+     */
+    fun execute(statements: List<MolangStatement>, context: MolangContext): Double {
         for (statement in statements) {
-            val value = eval(statement.expression, context).toFloat()
-            val target = statement.target ?: continue
-            writeMember(target, value, context)
+            val value = eval(statement.expression, context)
+            val target = statement.target
+            if (target != null) {
+                writeMember(target, value.toFloat(), context)
+            }
+            if (statement.isReturn) {
+                return value
+            }
         }
+        return 0.0
     }
 
     fun eval(expression: MolangExpr, context: MolangContext): Double {
