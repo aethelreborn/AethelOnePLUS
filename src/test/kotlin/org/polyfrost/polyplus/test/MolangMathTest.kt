@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.polyfrost.polyplus.client.bedrock.molang.MolangContext
 import org.polyfrost.polyplus.client.bedrock.molang.MolangEvaluator
 import org.polyfrost.polyplus.client.bedrock.molang.MolangExpr
+import kotlin.math.floor
 
 class MolangMathTest {
 
@@ -18,33 +19,42 @@ class MolangMathTest {
     }
 
     @Test
-    fun `hermite_blend is zero at start and one at end`() {
-        assertEquals(0.0, call("hermite_blend", 0.0, 10.0, 0.0), 1e-9)
-        assertEquals(1.0, call("hermite_blend", 0.0, 10.0, 10.0), 1e-9)
-        // Midpoint is 0.5, not 0.5 linear: smoothstep(0.5) = 0.5 * 0.5 * (3 - 1) = 0.5
-        assertEquals(0.5, call("hermite_blend", 0.0, 10.0, 5.0), 1e-9)
+    fun `hermite_blend eases a zero to one value`() {
+        assertEquals(0.0, call("hermite_blend", 0.0), 1e-9)
+        assertEquals(1.0, call("hermite_blend", 1.0), 1e-9)
+        // smoothstep(0.25) = 0.25 * 0.25 * (3 - 0.5) = 0.15625, not 0.25 (linear).
+        assertEquals(0.15625, call("hermite_blend", 0.25), 1e-9)
+        assertEquals(0.5, call("hermite_blend", 0.5), 1e-9)
+        assertEquals(0.84375, call("hermite_blend", 0.75), 1e-9)
     }
 
     @Test
-    fun `hermite_blend clamps outside the range`() {
-        assertEquals(0.0, call("hermite_blend", 0.0, 10.0, -5.0), 1e-9)
-        assertEquals(1.0, call("hermite_blend", 0.0, 10.0, 20.0), 1e-9)
+    fun `hermite_blend accepts floats beyond zero to one without clamping`() {
+        // The docs say any float is valid input though the curve is meant for
+        // [0,1], so 2 bends back to 2 * 2 * (3 - 4) = -4.
+        assertEquals(-4.0, call("hermite_blend", 2.0), 1e-9)
+        assertEquals(5.0, call("hermite_blend", -1.0), 1e-9)
     }
 
     @Test
-    fun `hermite_blend eases in and out`() {
-        // At 25% of the range, smoothstep is 0.15625, not 0.25 (linear).
-        assertEquals(0.15625, call("hermite_blend", 0.0, 100.0, 25.0), 1e-9)
-        // At 75%, smoothstep is 0.84375, not 0.75.
-        assertEquals(0.84375, call("hermite_blend", 0.0, 100.0, 75.0), 1e-9)
+    fun `inverse_lerp recovers the blend factor`() {
+        assertEquals(0.5, call("inverse_lerp", 0.0, 10.0, 5.0), 1e-9)
+        assertEquals(0.0, call("inverse_lerp", 0.0, 10.0, 0.0), 1e-9)
+        assertEquals(1.0, call("inverse_lerp", 0.0, 10.0, 10.0), 1e-9)
+        // Value beyond the range answers beyond 0..1 rather than clamping.
+        assertEquals(2.0, call("inverse_lerp", 0.0, 10.0, 20.0), 1e-9)
+        // Equal ends have no progress to recover.
+        assertEquals(0.0, call("inverse_lerp", 4.0, 4.0, 9.0), 1e-9)
     }
 
     @Test
-    fun `die_roll_integer stays within bounds`() {
+    fun `die_roll_integer sums whole dice between low and high`() {
         val ctx = MolangContext(0f, randomState = 42L)
         repeat(100) {
-            val value = call("die_roll_integer", 3.0, 6.0, 1.0, context = ctx)
-            assertTrue(value in 3.0..18.0, "die_roll_integer(3,6,1)=$value out of [3,18]")
+            // Like 3d6: three rolls of one to six, summed.
+            val value = call("die_roll_integer", 3.0, 1.0, 6.0, context = ctx)
+            assertTrue(value in 3.0..18.0, "die_roll_integer(3,1,6)=$value out of [3,18]")
+            assertEquals(value, floor(value), "integer variant rolled a fraction: $value")
         }
     }
 
@@ -56,13 +66,30 @@ class MolangMathTest {
     }
 
     @Test
-    fun `die_roll is the average of round sums`() {
+    fun `die_roll sums continuous values below high`() {
         val ctx = MolangContext(0f, randomState = 99L)
         repeat(50) {
-            val value = call("die_roll", 4.0, 8.0, 2.0, context = ctx)
-            // Sum of 8 rolls in [1,8] is [8,64], average is [1,8].
-            assertTrue(value in 1.0..8.0, "die_roll(4,8,2)=$value out of [1,8]")
+            // Four values in [2, 3), so the sum is in [8, 12).
+            val value = call("die_roll", 4.0, 2.0, 3.0, context = ctx)
+            assertTrue(value in 8.0..<12.0, "die_roll(4,2,3)=$value out of [8,12)")
         }
+    }
+
+    @Test
+    fun `a fractional roll count is a chance of one extra die`() {
+        val ctx = MolangContext(0f, randomState = 21L)
+        var extra = 0
+        repeat(1000) {
+            // Half a die over a one wide face: either zero or one, both must show.
+            if (call("die_roll_integer", 0.5, 0.0, 1.0, context = ctx) == 1.0) extra++
+        }
+        assertTrue(extra in 300..700, "half a die landed $extra times out of 1000, expected roughly half")
+    }
+
+    @Test
+    fun `die_roll with no dice is zero`() {
+        assertEquals(0.0, call("die_roll", 0.0, 1.0, 6.0), 1e-9)
+        assertEquals(0.0, call("die_roll_integer", -3.2, 1.0, 6.0), 1e-9)
     }
 
     @Test
@@ -80,6 +107,16 @@ class MolangMathTest {
         val b = call("random_integer", 1.0, 10.0, context = MolangContext(0f, randomState = 55L))
         assertEquals(a, b, 1e-9)
         assertTrue(a in 1.0..10.0, "random_integer(1,10)=$a out of [1,10]")
+        assertEquals(a, floor(a), "random_integer(1,10)=$a rolled a fraction")
+    }
+
+    @Test
+    fun `random_integer actually varies across draws`() {
+        val ctx = MolangContext(0f, randomState = 55L)
+        val seen = mutableSetOf<Double>()
+        repeat(200) { seen.add(call("random_integer", 1.0, 10.0, context = ctx)) }
+        assertTrue(seen.size > 1, "random_integer always returned ${seen.first()}")
+        assertTrue(seen.all { it in 1.0..10.0 }, "random_integer samples outside [1,10]: $seen")
     }
 
     @Test
