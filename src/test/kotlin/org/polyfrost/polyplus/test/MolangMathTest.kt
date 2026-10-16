@@ -95,10 +95,11 @@ class MolangMathTest {
     @Test
     fun `random stays within the requested range`() {
         val ctx = MolangContext(0f, randomState = 123L)
-        repeat(100) {
-            val value = call("random", 5.0, 15.0, context = ctx)
-            assertTrue(value >= 5.0 && value < 15.0, "random(5,15)=$value out of [5,15)")
-        }
+        val samples = (1..100).map { call("random", 5.0, 15.0, context = ctx) }
+        assertTrue(samples.all { it >= 5.0 && it < 15.0 }, "random(5,15) out of [5,15): $samples")
+        // A draw that never reaches the upper half means the generator is
+        // stuck in [low, midpoint) rather than sampling the whole range.
+        assertTrue(samples.any { it >= 10.0 }, "random(5,15) never reached the upper half")
     }
 
     @Test
