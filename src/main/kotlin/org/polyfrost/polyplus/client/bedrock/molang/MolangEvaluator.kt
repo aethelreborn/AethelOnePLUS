@@ -75,7 +75,7 @@ object MolangEvaluator {
         // math dispatch, which would not recognise them. The arguments are
         // selectors, not inputs, so they are skipped rather than evaluated.
         if (normalizeRoot(expression.callee.root) == "query") {
-            return context.query(expression.callee.path.joinToString("_"))
+            return context.query(expression.callee.path.joinToString("_")).toDouble()
         }
 
         val args = expression.args.map { eval(it, context) }
