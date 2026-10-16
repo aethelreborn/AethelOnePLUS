@@ -37,6 +37,9 @@ class MolangContext(
 
     fun getVariable(name: String): Float = variables[name] ?: 0f
 
+    /** Whether [name] was ever assigned; a set-to-zero variable counts as defined. */
+    fun hasVariable(name: String): Boolean = variables.containsKey(name)
+
     fun query(name: String): Float {
         val context = renderContext
         return when (name) {

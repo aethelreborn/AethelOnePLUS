@@ -58,7 +58,7 @@ object MolangParser {
 
             if (matchIdentifier("return")) {
                 skipWhitespace()
-                return MolangStatement(null, parseTernary())
+                return MolangStatement(null, parseCoalesce())
             }
 
             val checkpoint = index
@@ -69,14 +69,30 @@ object MolangParser {
             if (peek() == '=') {
                 consume('=')
                 skipWhitespace()
-                return MolangStatement(member, parseTernary())
+                return MolangStatement(member, parseCoalesce())
             }
 
             index = checkpoint
-            return MolangStatement(null, parseTernary())
+            return MolangStatement(null, parseCoalesce())
         }
 
-        fun parseExpression(): MolangExpr = parseTernary()
+        fun parseExpression(): MolangExpr = parseCoalesce()
+
+        // Bedrock's precedence table puts ?? below the ternary: a ? b : c ?? d
+        // is (a ? b : c) ?? d.
+        private fun parseCoalesce(): MolangExpr {
+            var expr = parseTernary()
+            while (true) {
+                skipWhitespace()
+                if (match("??")) {
+                    skipWhitespace()
+                    expr = MolangExpr.Coalesce(expr, parseTernary())
+                } else {
+                    break
+                }
+            }
+            return expr
+        }
 
         private fun parseTernary(): MolangExpr {
             var expr = parseOr()
@@ -248,12 +264,12 @@ object MolangParser {
                     skipWhitespace()
                     val args = mutableListOf<MolangExpr>()
                     if (peek() != ')') {
-                        args += parseTernary()
+                        args += parseCoalesce()
                         skipWhitespace()
                         while (peek() == ',') {
                             consume(',')
                             skipWhitespace()
-                            args += parseTernary()
+                            args += parseCoalesce()
                             skipWhitespace()
                         }
                     }
@@ -272,7 +288,7 @@ object MolangParser {
                 '(' -> {
                     consume('(')
                     skipWhitespace()
-                    val expr = parseTernary()
+                    val expr = parseCoalesce()
                     skipWhitespace()
                     expect(')')
                     return expr

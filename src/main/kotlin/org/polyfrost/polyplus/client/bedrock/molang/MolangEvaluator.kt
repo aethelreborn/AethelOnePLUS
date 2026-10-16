@@ -46,7 +46,29 @@ object MolangEvaluator {
                     eval(expression.whenFalse, context)
                 }
             }
+            // Bedrock: `A ?? B` answers B when the variable in A was never set
+            // (its null/undefined case); a variable assigned 0 is defined and
+            // answers A. Queries and computed expressions are always defined.
+            is MolangExpr.Coalesce -> {
+                val left = expression.left
+                if (left is MolangExpr.Member && !memberIsDefined(left, context)) {
+                    eval(expression.right, context)
+                } else {
+                    eval(left, context)
+                }
+            }
         }
+    }
+
+    private fun memberIsDefined(member: MolangExpr.Member, context: MolangContext): Boolean {
+        val root = normalizeRoot(member.root)
+        val key = when (root) {
+            "query" -> return true
+            "variable" -> member.path.joinToString(".")
+            "temp" -> MOLANG_TEMP_PREFIX + member.path.joinToString(".")
+            else -> listOf(root, *member.path.toTypedArray()).joinToString(".")
+        }
+        return context.hasVariable(key)
     }
 
     private fun evalBinary(expression: MolangExpr.Binary, context: MolangContext): Double {

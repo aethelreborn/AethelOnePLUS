@@ -20,6 +20,8 @@ sealed interface MolangExpr {
     }
 
     data class Ternary(val condition: MolangExpr, val whenTrue: MolangExpr, val whenFalse: MolangExpr) : MolangExpr
+
+    data class Coalesce(val left: MolangExpr, val right: MolangExpr) : MolangExpr
 }
 
 data class MolangStatement(

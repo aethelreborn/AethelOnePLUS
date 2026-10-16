@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.polyfrost.polyplus.client.bedrock.molang.MolangContext
 import org.polyfrost.polyplus.client.bedrock.molang.MolangEvaluator
 import org.polyfrost.polyplus.client.bedrock.molang.MolangExpr
+import org.polyfrost.polyplus.client.bedrock.molang.MolangParser
 import org.polyfrost.polyplus.client.render.PlayerRenderContext
 import kotlin.math.floor
 
@@ -259,6 +260,34 @@ class MolangMathTest {
     fun `math pi is a bare constant`() {
         val expr = MolangExpr.Member("math", listOf("pi"))
         assertEquals(Math.PI, MolangEvaluator.eval(expr, MolangContext(0f)), 1e-12)
+    }
+
+    @Test
+    fun `null coalescing prefers the default only while the variable is unset`() {
+        val context = MolangContext(0f)
+        val expr = MolangExpr.Coalesce(
+            MolangExpr.Member("variable", listOf("y")),
+            MolangExpr.Number(1.5),
+        )
+        assertEquals(1.5, MolangEvaluator.eval(expr, context), 1e-9)
+        context.setVariable("y", 0f)
+        // Set to zero still counts as defined, so the default is not used.
+        assertEquals(0.0, MolangEvaluator.eval(expr, context), 1e-9)
+        context.setVariable("y", 2.5f)
+        assertEquals(2.5, MolangEvaluator.eval(expr, context), 1e-9)
+    }
+
+    @Test
+    fun `null coalescing parses with the lowest precedence`() {
+        val context = MolangContext(0f)
+        // The right side is the whole additive expression, not just 1.0.
+        assertEquals(3.0, MolangEvaluator.eval(MolangParser.parseExpression("variable.y ?? 1.0 + 2.0"), context), 1e-9)
+        // A computed left side is always defined, so ?? answers it instead.
+        assertEquals(1.0, MolangEvaluator.eval(MolangParser.parseExpression("1.0 + variable.y ?? 2.0"), context), 1e-9)
+        // The ternary binds tighter: (1 ? 2 : 3) ?? 4 answers 2.
+        assertEquals(2.0, MolangEvaluator.eval(MolangParser.parseExpression("1.0 ? 2.0 : 3.0 ?? 4.0"), context), 1e-9)
+        // Both work through parentheses and call arguments, temp root included.
+        assertEquals(7.0, MolangEvaluator.eval(MolangParser.parseExpression("math.max((temp.a ?? 7.0), 0.0)"), context), 1e-9)
     }
 
     private val easeNames = listOf(
