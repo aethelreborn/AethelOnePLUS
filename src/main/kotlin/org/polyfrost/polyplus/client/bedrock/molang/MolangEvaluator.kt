@@ -10,6 +10,7 @@ import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.floor
+import kotlin.math.PI
 import kotlin.math.ln
 import kotlin.math.log10
 import kotlin.math.max
@@ -202,9 +203,121 @@ object MolangEvaluator {
                 val delta = ((((end - start) + 180.0) % 360.0) + 360.0) % 360.0 - 180.0
                 ((start + delta * alpha) % 360.0 + 360.0) % 360.0
             }
-            else -> 0.0
+            // Bedrock: math.ease_*(start, end, 0_to_1) interpolate from start
+            // to end through a classic easing curve. Like lerp the blend
+            // factor is not clamped, so a curve passed 1 keeps bending.
+            else -> if (name.startsWith("ease_")) {
+                val start = args.getOrElse(0) { 0.0 }
+                val end = args.getOrElse(1) { 0.0 }
+                val t = args.getOrElse(2) { 0.0 }
+                start + (end - start) * easeValue(name, t)
+            } else {
+                0.0
+            }
         }
+    }
 
+    /**
+     * The classic Penner easing curves Bedrock exposes as math.ease_*.
+     * Returns the eased progress factor for t, which the caller scales into
+     * start..end. Curves are defined for t in 0..1 and, like Bedrock's, are
+     * not clamped: the back and elastic curves are meant to overshoot inside
+     * that range and keep bending outside it.
+     */
+    private fun easeValue(name: String, t: Double): Double = when (name) {
+        "ease_in_sine" -> 1.0 - cos(t * PI / 2.0)
+        "ease_out_sine" -> sin(t * PI / 2.0)
+        "ease_in_out_sine" -> -(cos(PI * t) - 1.0) / 2.0
+        "ease_in_quad" -> t * t
+        "ease_out_quad" -> 1.0 - (1.0 - t) * (1.0 - t)
+        "ease_in_out_quad" -> if (t < 0.5) 2.0 * t * t else 1.0 - (-2.0 * t + 2.0).pow(2) / 2.0
+        "ease_in_cubic" -> t * t * t
+        "ease_out_cubic" -> 1.0 - (1.0 - t).pow(3)
+        "ease_in_out_cubic" -> if (t < 0.5) 4.0 * t * t * t else 1.0 - (-2.0 * t + 2.0).pow(3) / 2.0
+        "ease_in_quart" -> t.pow(4)
+        "ease_out_quart" -> 1.0 - (1.0 - t).pow(4)
+        "ease_in_out_quart" -> if (t < 0.5) 8.0 * t.pow(4) else 1.0 - (-2.0 * t + 2.0).pow(4) / 2.0
+        "ease_in_quint" -> t.pow(5)
+        "ease_out_quint" -> 1.0 - (1.0 - t).pow(5)
+        "ease_in_out_quint" -> if (t < 0.5) 16.0 * t.pow(5) else 1.0 - (-2.0 * t + 2.0).pow(5) / 2.0
+        "ease_in_expo" -> if (t == 0.0) 0.0 else 2.0.pow(10.0 * t - 10.0)
+        "ease_out_expo" -> if (t == 1.0) 1.0 else 1.0 - 2.0.pow(-10.0 * t)
+        "ease_in_out_expo" -> when {
+            t == 0.0 -> 0.0
+            t == 1.0 -> 1.0
+            t < 0.5 -> 2.0.pow(20.0 * t - 10.0) / 2.0
+            else -> (2.0 - 2.0.pow(-20.0 * t + 10.0)) / 2.0
+        }
+        "ease_in_circ" -> 1.0 - sqrt(1.0 - t * t)
+        "ease_out_circ" -> sqrt(1.0 - (t - 1.0).pow(2))
+        "ease_in_out_circ" -> if (t < 0.5) {
+            (1.0 - sqrt(1.0 - (2.0 * t).pow(2))) / 2.0
+        } else {
+            (sqrt(1.0 - (-2.0 * t + 2.0).pow(2)) + 1.0) / 2.0
+        }
+        // The back curves aim past the end and correct; the 1.525 factor in
+        // the in-out variant is the classic Penner overshoot constant.
+        "ease_in_back" -> {
+            val c1 = 1.70158
+            (c1 + 1.0) * t * t * t - c1 * t * t
+        }
+        "ease_out_back" -> {
+            val c1 = 1.70158
+            1.0 + (c1 + 1.0) * (t - 1.0).pow(3) + c1 * (t - 1.0).pow(2)
+        }
+        "ease_in_out_back" -> {
+            val c2 = 1.70158 * 1.525
+            if (t < 0.5) {
+                (2.0 * t).pow(2) * ((c2 + 1.0) * 2.0 * t - c2) / 2.0
+            } else {
+                ((2.0 * t - 2.0).pow(2) * ((c2 + 1.0) * (2.0 * t - 2.0) + c2) + 2.0) / 2.0
+            }
+        }
+        "ease_in_elastic" -> {
+            val c4 = 2.0 * PI / 3.0
+            when {
+                t == 0.0 -> 0.0
+                t == 1.0 -> 1.0
+                else -> -2.0.pow(10.0 * t - 10.0) * sin((10.0 * t - 10.75) * c4)
+            }
+        }
+        "ease_out_elastic" -> {
+            val c4 = 2.0 * PI / 3.0
+            when {
+                t == 0.0 -> 0.0
+                t == 1.0 -> 1.0
+                else -> 2.0.pow(-10.0 * t) * sin((10.0 * t - 0.75) * c4) + 1.0
+            }
+        }
+        "ease_in_out_elastic" -> {
+            val c5 = 2.0 * PI / 4.5
+            when {
+                t == 0.0 -> 0.0
+                t == 1.0 -> 1.0
+                t < 0.5 -> -(2.0.pow(20.0 * t - 10.0) * sin((20.0 * t - 11.125) * c5)) / 2.0
+                else -> 2.0.pow(-20.0 * t + 10.0) * sin((20.0 * t - 11.125) * c5) / 2.0 + 1.0
+            }
+        }
+        "ease_in_bounce" -> 1.0 - bounceOut(1.0 - t)
+        "ease_out_bounce" -> bounceOut(t)
+        "ease_in_out_bounce" -> if (t < 0.5) {
+            (1.0 - bounceOut(1.0 - 2.0 * t)) / 2.0
+        } else {
+            (1.0 + bounceOut(2.0 * t - 1.0)) / 2.0
+        }
+        else -> 0.0
+    }
+
+    /** The bounce tail shared by the three ease_*_bounce curves. */
+    private fun bounceOut(t: Double): Double {
+        val n1 = 7.5625
+        val d1 = 2.75
+        return when {
+            t < 1.0 / d1 -> n1 * t * t
+            t < 2.0 / d1 -> n1 * (t - 1.5 / d1).pow(2) + 0.75
+            t < 2.5 / d1 -> n1 * (t - 2.25 / d1).pow(2) + 0.9375
+            else -> n1 * (t - 2.625 / d1).pow(2) + 0.984375
+        }
     }
 
     private fun readMember(member: MolangExpr.Member, context: MolangContext): Double {

@@ -187,4 +187,54 @@ class MolangMathTest {
         val wrapped = call("lerpangle", 720.0, 90.0, 0.0)
         assertTrue(wrapped in 0.0..<360.0, "lerpangle wrapped=$wrapped out of [0,360)")
     }
+
+    private val easeNames = listOf(
+        "ease_in_sine", "ease_out_sine", "ease_in_out_sine",
+        "ease_in_quad", "ease_out_quad", "ease_in_out_quad",
+        "ease_in_cubic", "ease_out_cubic", "ease_in_out_cubic",
+        "ease_in_quart", "ease_out_quart", "ease_in_out_quart",
+        "ease_in_quint", "ease_out_quint", "ease_in_out_quint",
+        "ease_in_expo", "ease_out_expo", "ease_in_out_expo",
+        "ease_in_circ", "ease_out_circ", "ease_in_out_circ",
+        "ease_in_back", "ease_out_back", "ease_in_out_back",
+        "ease_in_elastic", "ease_out_elastic", "ease_in_out_elastic",
+        "ease_in_bounce", "ease_out_bounce", "ease_in_out_bounce",
+    )
+
+    @Test
+    fun `every ease curve maps zero to start and one to end`() {
+        for (name in easeNames) {
+            assertEquals(2.0, call(name, 2.0, 7.0, 0.0), 1e-9, "$name at t=0")
+            assertEquals(7.0, call(name, 2.0, 7.0, 1.0), 1e-9, "$name at t=1")
+        }
+    }
+
+    @Test
+    fun `ease curves match their classic midpoint shapes`() {
+        assertEquals(0.5, call("ease_in_out_quad", 0.0, 1.0, 0.5), 1e-9)
+        assertEquals(0.875, call("ease_out_cubic", 0.0, 1.0, 0.5), 1e-9)
+        assertEquals(0.9375, call("ease_out_quart", 0.0, 1.0, 0.5), 1e-9)
+        assertEquals(0.765625, call("ease_out_bounce", 0.0, 1.0, 0.5), 1e-9)
+        // Elastic overshoots the end on purpose: 2^-5 * sin(5pi/6) + 1.
+        assertEquals(1.015625, call("ease_out_elastic", 0.0, 1.0, 0.5), 1e-9)
+        // Back winds up below the start before launching.
+        assertEquals(-0.0876975, call("ease_in_back", 0.0, 1.0, 0.5), 1e-6)
+        assertEquals(1.0876975, call("ease_out_back", 0.0, 1.0, 0.5), 1e-6)
+    }
+
+    @Test
+    fun `contained ease curves stay within start and end`() {
+        val overshooting = setOf(
+            "ease_in_back", "ease_out_back", "ease_in_out_back",
+            "ease_in_elastic", "ease_out_elastic", "ease_in_out_elastic",
+        )
+        for (name in easeNames - overshooting) {
+            var t = 0.0
+            while (t <= 1.0) {
+                val value = call(name, 10.0, 20.0, t)
+                assertTrue(value in 10.0..20.0, "$name at t=$t was $value, out of [10,20]")
+                t += 0.05
+            }
+        }
+    }
 }
