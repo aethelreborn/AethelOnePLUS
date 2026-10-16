@@ -303,7 +303,10 @@ object MolangEvaluator {
      * a per-context LCG advanced by call order.
      */
     private fun nextRandom(context: MolangContext): Double {
-        context.randomState = (context.randomState * 6364136223846793005L + 1442695040888963407L) and Long.MAX_VALUE
+        // Wrap mod 2^64 like PCG; do not mask the sign bit or the 53-bit
+        // window taken by `ushr 11` only ever covers the bottom half of the
+        // requested range (every draw would land in [0, 0.5)).
+        context.randomState = context.randomState * 6364136223846793005L + 1442695040888963407L
         return (context.randomState ushr 11).toDouble() / (1L shl 53).toDouble()
     }
 }
