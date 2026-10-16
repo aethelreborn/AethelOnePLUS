@@ -78,12 +78,16 @@ class MolangMathTest {
     @Test
     fun `a fractional roll count is a chance of one extra die`() {
         val ctx = MolangContext(0f, randomState = 21L)
-        var extra = 0
+        var ones = 0
         repeat(1000) {
-            // Half a die over a one wide face: either zero or one, both must show.
-            if (call("die_roll_integer", 0.5, 0.0, 1.0, context = ctx) == 1.0) extra++
+            // Landing a one takes two things: the 50% coin for the extra die,
+            // then the die itself rolling 1 out of 0..1. That is ~25% of
+            // draws, not 50%, and a draw is never anything but 0 or 1.
+            val value = call("die_roll_integer", 0.5, 0.0, 1.0, context = ctx)
+            assertTrue(value == 0.0 || value == 1.0, "half a die rolled $value")
+            if (value == 1.0) ones++
         }
-        assertTrue(extra in 300..700, "half a die landed $extra times out of 1000, expected roughly half")
+        assertTrue(ones in 150..350, "half a die landed a one $ones times out of 1000, expected roughly 250")
     }
 
     @Test
