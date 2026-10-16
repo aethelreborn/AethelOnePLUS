@@ -123,6 +123,15 @@ object MolangEvaluator {
                 val alpha = args.getOrElse(2) { 0.0 }.coerceIn(0.0, 1.0)
                 start + (end - start) * alpha
             }
+            // Bedrock: math.inverse_lerp(start, end, value) recovers the blend
+            // factor a math.lerp would have used. Not clamped, so values beyond
+            // the range answer beyond 0..1 like Bedrock's.
+            "inverse_lerp" -> {
+                val start = args.getOrElse(0) { 0.0 }
+                val end = args.getOrElse(1) { 0.0 }
+                val value = args.getOrElse(2) { 0.0 }
+                if (end == start) 0.0 else (value - start) / (end - start)
+            }
             // Shortest-path angle blend in degrees, so 350 -> 10 goes forward
             // through 0 rather than backwards through 180.
             "lerprotate" -> {
@@ -132,43 +141,43 @@ object MolangEvaluator {
                 val delta = ((((end - start) + 180.0) % 360.0) + 360.0) % 360.0 - 180.0
                 start + delta * alpha
             }
-            // Hermite smoothstep: 0 at start, 1 at end, with zero derivative at
-            // both ends so the blend eases in and out rather than moving linearly.
+            // Bedrock: math.hermite_blend(t) = 3t^2 - 2t^3, the Hermite basis
+            // used to ease a 0..1 value with zero derivative at both ends. The
+            // docs say any float is valid input and the curve is meant for
+            // [0, 1], so there is no clamping; outside the range it bends back.
             "hermite_blend" -> {
-                val start = args.getOrElse(0) { 0.0 }
-                val end = args.getOrElse(1) { 1.0 }
-                val value = args.getOrElse(2) { 0.0 }
-                if (end == start) {
-                    if (value >= end) 1.0 else 0.0
-                } else {
-                    val t = ((value - start) / (end - start)).coerceIn(0.0, 1.0)
-                    t * t * (3.0 - 2.0 * t)
-                }
+                val t = args.getOrElse(0) { 0.0 }
+                t * t * (3.0 - 2.0 * t)
             }
-            // Rolls `total` dice of `side` faces, `rounds` times, and returns the
-            // average of the round sums. Deterministic per seed so the same
-            // animation replay produces the same values.
-            "die_roll" -> {
-                val total = args.getOrElse(0) { 1.0 }.toInt().coerceAtLeast(0)
-                val side = args.getOrElse(1) { 1.0 }.toInt().coerceAtLeast(1)
-                val rounds = args.getOrElse(2) { 1.0 }.toInt().coerceAtLeast(1)
-                dieRoll(total, side, rounds, context).toDouble() / total.coerceAtLeast(1)
-            }
-            "die_roll_integer" -> {
-                val total = args.getOrElse(0) { 1.0 }.toInt().coerceAtLeast(0)
-                val side = args.getOrElse(1) { 1.0 }.toInt().coerceAtLeast(1)
-                val rounds = args.getOrElse(2) { 1.0 }.toInt().coerceAtLeast(1)
-                dieRoll(total, side, rounds, context).toDouble()
-            }
+            // Bedrock: math.die_roll(num, low, high) sums `num` random numbers in
+            // [low, high); die_roll_integer the same with whole numbers. A
+            // fractional `num` is the chance of one extra die, so 2.5 rolls
+            // twice and half the time a third time. Deterministic per seed.
+            "die_roll" -> dieRoll(
+                args.getOrElse(0) { 1.0 },
+                args.getOrElse(1) { 0.0 },
+                args.getOrElse(2) { 1.0 },
+                context,
+                asInteger = false,
+            )
+            "die_roll_integer" -> dieRoll(
+                args.getOrElse(0) { 1.0 },
+                args.getOrElse(1) { 0.0 },
+                args.getOrElse(2) { 1.0 },
+                context,
+                asInteger = true,
+            )
             "random" -> {
                 val from = args.getOrElse(0) { 0.0 }
                 val to = args.getOrElse(1) { 1.0 }
                 from + nextRandom(context) * (to - from)
             }
+            // Bedrock: whole value in [low, high] with both ends included.
             "random_integer" -> {
                 val from = args.getOrElse(0) { 0.0 }.toInt()
                 val to = args.getOrElse(1) { 1.0 }.toInt()
-                if (to <= from) from.toDouble() else (from + nextRandom(context).toInt() % (to - from + 1)).toDouble()
+                if (to <= from) from.toDouble()
+                else (from + (nextRandom(context) * (to - from + 1)).toInt().coerceAtMost(to - from)).toDouble()
             }
             // Inverse trig returns degrees to match sin/cos taking degrees. Inputs
             // are coerced to the valid domain so a slightly-out-of-range value from
@@ -241,18 +250,48 @@ object MolangEvaluator {
     private fun flooredMod(value: Double, divisor: Double): Double =
         if (divisor == 0.0) 0.0 else ((value % divisor) + divisor) % divisor
 
+    /** Upper bound on a single die_roll call, a defensive cap Bedrock does not have. */
+    private const val MAX_DIE_ROLLS = 10_000
+
     /**
-     * Rolls `total` dice of `side` faces across `rounds` rounds and returns the
-     * sum of all rolls. Each round is independent, so die_roll(2, 6, 3) sums six
-     * values in [1, 6]. Deterministic per seed: the same seed and call sequence
-     * always produce the same rolls.
+     * Rolls `rolls` dice between `low` and `high` and returns their sum. Whole
+     * rolls are always taken and the fractional part is the chance of one more,
+     * matching Bedrock's partial die. The float variant takes continuous values
+     * in [low, high), the integer variant whole values in [low, high].
+     * Deterministic per seed: the same seed and call sequence produce the same
+     * rolls. The roll count is capped so a hostile animation cannot pin the
+     * render thread; Bedrock itself has no limit here.
      */
-    private fun dieRoll(total: Int, side: Int, rounds: Int, context: MolangContext): Int {
-        var sum = 0
-        repeat(rounds) {
-            repeat(total) {
-                sum += 1 + (nextRandom(context) * side).toInt()
+    private fun dieRoll(
+        rolls: Double,
+        low: Double,
+        high: Double,
+        context: MolangContext,
+        asInteger: Boolean,
+    ): Double {
+        val whole = rolls.toInt().coerceIn(0, MAX_DIE_ROLLS)
+        val extraChance = (rolls - rolls.toInt()).coerceIn(0.0, 1.0)
+        var count = whole
+        if (extraChance > 0.0 && nextRandom(context) < extraChance) count += 1
+        if (count == 0) return 0.0
+
+        if (asInteger) {
+            val lo = floor(low).toInt()
+            val hi = floor(high).toInt()
+            if (hi <= lo) return lo.toDouble() * count
+            val faces = hi - lo + 1
+            var sum = 0
+            repeat(count) {
+                sum += lo + (nextRandom(context) * faces).toInt().coerceAtMost(faces - 1)
             }
+            return sum.toDouble()
+        }
+
+        if (high <= low) return low * count
+        val span = high - low
+        var sum = 0.0
+        repeat(count) {
+            sum += low + nextRandom(context) * span
         }
         return sum
     }
