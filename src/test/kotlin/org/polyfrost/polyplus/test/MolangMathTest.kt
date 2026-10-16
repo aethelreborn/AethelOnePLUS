@@ -238,6 +238,29 @@ class MolangMathTest {
         assertEquals(60.0, MolangEvaluator.eval(expr, context), 1e-6)
     }
 
+    @Test
+    fun `copy sign takes the sign of the second argument`() {
+        assertEquals(-3.0, call("copy_sign", 3.0, -2.0), 1e-9)
+        assertEquals(4.0, call("copy_sign", -4.0, 2.0), 1e-9)
+        assertEquals(-5.0, call("copy_sign", 5.0, -0.0), 1e-9)
+    }
+
+    @Test
+    fun `min angle folds degrees into minus 180 until 180`() {
+        assertEquals(-170.0, call("min_angle", 190.0), 1e-9)
+        assertEquals(170.0, call("min_angle", -190.0), 1e-9)
+        assertEquals(90.0, call("min_angle", 90.0), 1e-9)
+        // The range is half-open: exactly 180 comes back as -180.
+        assertEquals(-180.0, call("min_angle", 180.0), 1e-9)
+        assertEquals(-180.0, call("min_angle", 540.0), 1e-9)
+    }
+
+    @Test
+    fun `math pi is a bare constant`() {
+        val expr = MolangExpr.Member("math", listOf("pi"))
+        assertEquals(Math.PI, MolangEvaluator.eval(expr, MolangContext(0f)), 1e-12)
+    }
+
     private val easeNames = listOf(
         "ease_in_sine", "ease_out_sine", "ease_in_out_sine",
         "ease_in_quad", "ease_out_quad", "ease_in_out_quad",
