@@ -141,6 +141,11 @@ object MolangEvaluator {
                 val value = args.getOrElse(2) { 0.0 }
                 if (end == start) 0.0 else (value - start) / (end - start)
             }
+            // Bedrock: math.copy_sign(A, B) answers A with B's sign.
+            "copy_sign" -> Math.copySign(args.getOrElse(0) { 0.0 }, args.getOrElse(1) { 0.0 })
+            // Bedrock: math.min_angle(value) minimizes the angle magnitude into
+            // [-180, 180), so 190 answers -170 and exactly 180 flips to -180.
+            "min_angle" -> (((args.getOrElse(0) { 0.0 } + 180.0) % 360.0) + 360.0) % 360.0 - 180.0
             // Shortest-path angle blend in degrees, so 350 -> 10 goes forward
             // through 0 rather than backwards through 180.
             "lerprotate" -> {
@@ -336,6 +341,12 @@ object MolangEvaluator {
             "query", "q" -> context.query(path.joinToString("_"))
             "variable", "v" -> context.getVariable(path.joinToString("."))
             "temp", "t" -> context.getVariable(MOLANG_TEMP_PREFIX + path.joinToString("."))
+            // Bedrock exposes math.pi as a bare constant. Not a variable, so it
+            // must be answered here or the expression reads 0.
+            "math" -> when (path.singleOrNull()?.lowercase()) {
+                "pi" -> Math.PI
+                else -> context.getVariable("math." + path.joinToString("."))
+            }
             else -> context.getVariable(listOf(root, *path.toTypedArray()).joinToString("."))
         }.toDouble()
     }
