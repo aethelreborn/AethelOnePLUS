@@ -27,4 +27,6 @@ sealed interface MolangExpr {
 data class MolangStatement(
     val target: MolangExpr.Member?,
     val expression: MolangExpr,
+    /** `return x;` — stops the block and answers x, per the Molang docs. */
+    val isReturn: Boolean = false,
 )

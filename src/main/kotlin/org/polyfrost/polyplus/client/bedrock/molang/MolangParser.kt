@@ -32,10 +32,7 @@ object MolangParser {
         return trimmed.splitToSequence(';')
             .map { it.trim() }
             .filter { it.isNotEmpty() }
-            .map { segment ->
-                val normalized = segment.removePrefix("return").trim()
-                Parser(normalized).parseStatement()
-            }
+            .map { segment -> Parser(segment).parseStatement() }
             .toList()
     }
 
@@ -45,7 +42,7 @@ object MolangParser {
             return emptyList()
 
         if (!trimmed.contains(';'))
-            return listOf(Parser(trimmed.removePrefix("return").trim()).parseStatement())
+            return listOf(Parser(trimmed).parseStatement())
 
         return parseStatements(trimmed)
     }
@@ -58,7 +55,7 @@ object MolangParser {
 
             if (matchIdentifier("return")) {
                 skipWhitespace()
-                return MolangStatement(null, parseCoalesce())
+                return MolangStatement(null, parseCoalesce(), isReturn = true)
             }
 
             val checkpoint = index
