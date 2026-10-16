@@ -98,7 +98,9 @@ object MolangParser {
             var expr = parseOr()
             skipWhitespace()
 
-            if (peek() == '?') {
+            // A single '?' starts a ternary; '??' is the coalescing operator
+            // owned by parseCoalesce one level up.
+            if (peek() == '?' && (index + 1 >= source.length || source[index + 1] != '?')) {
                 consume('?')
                 skipWhitespace()
 
