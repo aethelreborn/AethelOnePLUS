@@ -23,8 +23,16 @@ data class PlayerRenderContext(
     val verticalSpeed: Float = 0f,
     val yawSpeed: Float = 0f,
     val isSprinting: Boolean = false,
+    /** Head yaw in degrees, interpolated for the current frame. */
+    val headYawDeg: Float = 0f,
+    /** Body (render) yaw in degrees, interpolated for the current frame. */
+    val bodyYawDeg: Float = 0f,
+    /** Head pitch in degrees, interpolated for the current frame. */
+    val headPitchDeg: Float = 0f,
 ) {
     companion object {
+        private fun lerp(from: Float, to: Float, delta: Float): Float = from + (to - from) * delta
+
         //? if >= 1.21.4 {
         fun from(state: HumanoidRenderState): PlayerRenderContext = PlayerRenderContext(
             ageInTicks = state.ageInTicks,
@@ -34,6 +42,9 @@ data class PlayerRenderContext(
             isInWater = state.isInWater,
             swimAmount = state.swimAmount,
             isInvisible = state.isInvisible,
+            headYawDeg = state.yRot,
+            bodyYawDeg = state.bodyRot,
+            headPitchDeg = state.xRot,
         )
         //?} elif = 1.21.1 {
         /*fun from(
@@ -49,12 +60,15 @@ data class PlayerRenderContext(
             isInWater = player.isInWater,
             swimAmount = player.getSwimAmount(partialTicks),
             isInvisible = player.isInvisible,
+            headYawDeg = lerp(player.yHeadRotO, player.yHeadRot, partialTicks),
+            bodyYawDeg = lerp(player.yBodyRotO, player.yBodyRot, partialTicks),
+            headPitchDeg = lerp(player.xRotO, player.xRot, partialTicks),
         )
         *///?} else {
         /*@JvmStatic
         fun from(
             player: ClientPlayerEntity,
-            @Suppress("UNUSED_PARAMETER") partialTicks: Float,
+            partialTicks: Float,
             limbSwingAmount: Float,
             ageInTicks: Float,
         ): PlayerRenderContext = PlayerRenderContext(
@@ -65,6 +79,9 @@ data class PlayerRenderContext(
             isInWater = player.isInWater,
             swimAmount = 0f,
             isInvisible = player.isInvisible,
+            headYawDeg = lerp(player.lastHeadYaw, player.headYaw, partialTicks),
+            bodyYawDeg = lerp(player.lastBodyYaw, player.bodyYaw, partialTicks),
+            headPitchDeg = lerp(player.lastPitch, player.pitch, partialTicks),
         )
         *///?}
     }
