@@ -15,6 +15,7 @@ object CosmeticLoadProgress {
         val fraction: Float?,
         val label: String,
         val failure: String?,
+        val localBackendDown: Boolean = false,
     )
 
     @Volatile
@@ -35,6 +36,9 @@ object CosmeticLoadProgress {
     @Volatile
     private var failure: String? = null
 
+    @Volatile
+    private var localBackendDown = false
+
     private val assetsDone = AtomicInteger()
     private val assetsTotal = AtomicInteger()
 
@@ -52,6 +56,7 @@ object CosmeticLoadProgress {
             fraction = fraction(ready),
             label = label(ready),
             failure = failed,
+            localBackendDown = localBackendDown,
         )
     }
 
@@ -94,6 +99,7 @@ object CosmeticLoadProgress {
         assetsStarted = false
         assetsComplete = false
         failure = null
+        localBackendDown = false
         assetsDone.set(0)
         assetsTotal.set(0)
     }
@@ -106,6 +112,7 @@ object CosmeticLoadProgress {
         assetsStarted = true
         assetsComplete = true
         failure = null
+        localBackendDown = false
     }
 
     fun onCatalogFetched() {
@@ -134,8 +141,9 @@ object CosmeticLoadProgress {
         metadataComplete = true
     }
 
-    fun fail(reason: String) {
+    fun fail(reason: String, localBackendDown: Boolean = false) {
         failure = reason
+        this.localBackendDown = localBackendDown
         metadataComplete = true
         assetsComplete = true
     }

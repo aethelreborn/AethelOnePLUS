@@ -21,6 +21,7 @@ import org.polyfrost.polyplus.client.network.http.responses.PartialEquippedCosme
 import org.polyfrost.polyplus.client.network.http.responses.PlayerCosmetics
 import org.polyfrost.polyplus.client.network.http.responses.SetEquippedCosmeticsRequest
 import org.polyfrost.polyplus.client.utils.ClientPlatform
+import org.polyfrost.polyplus.client.utils.isLocalBackendDown
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.launch
@@ -101,8 +102,11 @@ object CosmeticCatalog {
                 expectSuccess = true
             }.bodyOrThrow<CosmeticList>()
         }.onFailure { reportCatalogFailure(it) }
-            .getOrElse {
-                CosmeticLoadProgress.fail(it.message ?: it::class.java.simpleName)
+            .getOrElse { error ->
+                CosmeticLoadProgress.fail(
+                    error.message ?: error::class.java.simpleName,
+                    localBackendDown = isLocalBackendDown(error),
+                )
                 return
             }
         CosmeticLoadProgress.onCatalogFetched()

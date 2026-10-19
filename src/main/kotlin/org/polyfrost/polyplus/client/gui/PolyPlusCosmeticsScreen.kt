@@ -123,6 +123,7 @@ import org.polyfrost.polyplus.client.network.http.responses.CosmeticType
 import org.polyfrost.polyplus.client.network.http.responses.TransactionInfo
 import org.polyfrost.polyplus.client.network.http.responses.TransactionStatus
 import org.polyfrost.polyplus.client.utils.ClientPlatform
+import org.polyfrost.polyplus.client.utils.isLocalBackendDown
 import org.polyfrost.polyplus.privacy.PrivacyConsent
 import java.awt.Color as AwtColor
 import java.time.Duration
@@ -257,6 +258,13 @@ private fun checkoutFailureMessage(error: Throwable): String =
     } else {
         "Checkout failed: ${error.message}"
     }
+
+private const val LOCAL_BACKEND_HINT =
+    ". Start the AethelONE launcher (it runs your cosmetics locally), then retry."
+
+/** Guidance appended when the failure is the launcher-hosted backend being down. */
+private fun localBackendHint(error: Throwable): String =
+    if (isLocalBackendDown(error)) LOCAL_BACKEND_HINT else ""
 
 private data class CosmeticUiItem(
     val groupId: Int,
@@ -426,7 +434,7 @@ private fun PolyPlusCosmeticsScreen() {
                         ClientPlatform.runOnMain {
                             status = result.fold(
                                 onSuccess = { if (color != null) "Aura color updated." else "Aura color cleared." },
-                                onFailure = { "Failed to set aura color: ${it.message}" },
+                                onFailure = { "Failed to set aura color: ${it.message}${localBackendHint(it)}" },
                             )
                         }
                     }
@@ -2184,7 +2192,11 @@ private fun CosmeticsLoadingScreen(
         )
         SocialText(
             if (failed) {
-                "PolyPlus couldn't reach its servers (${state.failure}). Check your connection and try again."
+                if (state.localBackendDown) {
+                    "PolyPlus couldn't reach its servers (${state.failure})$LOCAL_BACKEND_HINT"
+                } else {
+                    "PolyPlus couldn't reach its servers (${state.failure}). Check your connection and try again."
+                }
             } else {
                 state.label
             },
@@ -2407,7 +2419,7 @@ private fun equip(item: CosmeticUiItem, variantId: Int, onComplete: (String) -> 
             onComplete(
                 result.fold(
                     onSuccess = { "Equipped ${item.name}." },
-                    onFailure = { "Failed to equip ${item.name}: ${it.message}" },
+                    onFailure = { "Failed to equip ${item.name}: ${it.message}${localBackendHint(it)}" },
                 ),
             )
         }
@@ -2431,7 +2443,7 @@ private fun unequip(item: CosmeticUiItem, onComplete: (String) -> Unit) {
             onComplete(
                 result.fold(
                     onSuccess = { "Unequipped ${item.name}." },
-                    onFailure = { "Failed to unequip ${item.name}: ${it.message}" },
+                    onFailure = { "Failed to unequip ${item.name}: ${it.message}${localBackendHint(it)}" },
                 ),
             )
         }
