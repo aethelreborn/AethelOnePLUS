@@ -55,7 +55,7 @@ The OneClient performance settings go one step further and look after the machin
 
 - **Low-End Mode** caps the frame rate at 60 FPS, shortens the render and simulation distances, cuts the particles, drops the entity shadows and turns the motion blur off. Turn it off and your video options come back.
 - **Adaptive Performance** watches the frame rate while you play and caps the game at 30 FPS with the motion blur off whenever it stays low, then hands the cap back once the frame rate recovers.
-- **Performance report**: when the frame rate is bad, OneClient tells you what holds it back. On a laptop the most common cause is that the game draws on the processor instead of the graphics card, which happens when the graphics driver is missing or when the Vulkan backend falls back to software rendering.
+- **Performance report**: when the frame rate is bad, OneClient tells you what holds it back. On a laptop the most common cause is that the game draws on the processor instead of the graphics card, which happens when the graphics driver is missing or when the Vulkan backend falls back to software rendering. `/polyplus performance` prints the same report whenever you want it.
 
 ## Terms of Service
 

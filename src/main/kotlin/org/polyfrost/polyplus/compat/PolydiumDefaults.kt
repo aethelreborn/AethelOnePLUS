@@ -1,6 +1,7 @@
 package org.polyfrost.polyplus.compat
 
 import com.google.gson.JsonParser
+import net.fabricmc.loader.api.FabricLoader
 import org.apache.logging.log4j.LogManager
 import java.nio.file.Files
 import java.nio.file.Path
@@ -26,6 +27,7 @@ object PolydiumDefaults {
     private const val LOW_END_KEY = "lowEndMode"
     private const val POLYDIUM_FILE = "polydium.json"
     private const val SECTION_CACHE_SIZE = "sectionCacheSize"
+    private const val MOD_ID = "polydium"
 
     fun apply(configDir: Path) {
         if (!lowEndEnabled(configDir)) return
@@ -50,6 +52,16 @@ object PolydiumDefaults {
         val root = JsonParser.parseString(file.readText()).asJsonObject
         root.get(LOW_END_KEY)?.asBoolean ?: false
     }.getOrDefault(false)
+
+    /** The bundled performance mod and the version of it that is running. */
+    fun state(): String {
+        val loader = FabricLoader.getInstance()
+        if (!loader.isModLoaded(MOD_ID)) return "not loaded"
+        val version = runCatching {
+            loader.getModContainer(MOD_ID).map { it.metadata.version.friendlyString }.orElse("unknown")
+        }.getOrDefault("unknown")
+        return "$MOD_ID $version"
+    }
 
     private fun writeAtomically(path: Path, text: String) {
         val temp = path.resolveSibling("${path.fileName}.polyplus-tmp")

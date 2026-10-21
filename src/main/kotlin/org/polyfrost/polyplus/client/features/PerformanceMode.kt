@@ -13,6 +13,7 @@ import org.polyfrost.polyplus.client.PolyPlusPerformanceConfig
 import org.polyfrost.polyplus.client.utils.ClientPlatform
 import org.polyfrost.polyplus.client.utils.VanillaOptions
 import org.polyfrost.polyplus.compat.GraphicsBackend
+import org.polyfrost.polyplus.compat.PolydiumDefaults
 
 /**
  * Keeps the game playable on machines that cannot keep up.
@@ -173,6 +174,7 @@ object PerformanceMode {
             add("Frame rate cap: ${frameCap ?: 0}")
             add("Renderer: $renderer")
             add("Graphics backend: $backend")
+            add("Performance mod: ${PolydiumDefaults.state()}")
             add("Low-end mode: ${if (PolyPlusPerformanceConfig.lowEndMode) "on" else "off"}")
             if (findings.isEmpty()) {
                 add("Nothing is holding the frame rate back.")
