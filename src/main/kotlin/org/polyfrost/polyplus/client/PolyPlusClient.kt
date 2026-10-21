@@ -31,6 +31,7 @@ import org.polyfrost.polyplus.client.features.AdvancedModCards
 import org.polyfrost.polyplus.client.features.DefaultModOrder
 import org.polyfrost.polyplus.client.features.DefaultSettings
 import org.polyfrost.polyplus.client.features.JvmAdvisor
+import org.polyfrost.polyplus.client.features.MainMenuPerformance
 import org.polyfrost.polyplus.client.features.ModpackDiff
 import org.polyfrost.polyplus.client.features.OnboardingFeatures
 import org.polyfrost.polyplus.client.features.PerformanceMode
@@ -173,6 +174,7 @@ object PolyPlusClient {
         step("rrls crash guard") { RrlsCrashGuard.initialize() }
         step("adaptive blur") { AdaptiveBlurDefaults.initialize() }
         step("performance mode") { PerformanceMode.initialize() }
+        step("main menu performance") { MainMenuPerformance.initialize() }
         step("jvm advisor") { JvmAdvisor.initialize() }
         step("modpack diff") { ModpackDiff.logAsync() }
         step("login gate") { MinecraftLoginGate.register() }

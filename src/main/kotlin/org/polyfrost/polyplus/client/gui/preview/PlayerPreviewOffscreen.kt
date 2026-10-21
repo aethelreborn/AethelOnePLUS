@@ -13,6 +13,7 @@ import org.jetbrains.skia.SamplingMode
 import org.polyfrost.oneconfig.internal.ui.SkiaOffscreenTarget
 import org.polyfrost.oneconfig.internal.ui.compose.ComposeScreen
 import org.polyfrost.oneconfig.internal.ui.compose.SkiaCtx
+import org.polyfrost.polyplus.client.PolyPlusPerformanceConfig
 import org.polyfrost.polyplus.client.utils.ClientPlatform
 import org.slf4j.LoggerFactory
 
@@ -34,6 +35,7 @@ object PlayerPreviewOffscreen {
         var fw = 0f
         var fh = 0f
         var lastDrawNanos = 0L
+        var lastRenderNanos = 0L
 
         internal var offscreen: SkiaOffscreenTarget? = null
         internal var contentWidth = 0
@@ -44,6 +46,10 @@ object PlayerPreviewOffscreen {
     private const val MAX_DIM = 1024
     private const val SPIN_DEG_PER_SEC = 37.5f
     private const val MAX_SPIN_STEP_SEC = 0.1
+
+    /** The preview only needs a slow spin, so it is not redrawn for every frame the menu draws. */
+    private const val PREVIEW_FRAME_NANOS = 33_000_000L
+    private const val LOW_END_PREVIEW_FRAME_NANOS = 66_000_000L
 
     private const val IDLE_NANOS = 250_000_000L
     private const val RELEASE_NANOS = 1_000_000_000L
@@ -90,6 +96,9 @@ object PlayerPreviewOffscreen {
                 e.lastSpinNanos = 0L
                 continue
             }
+            // the preview is a slow spin, redrawing it for every frame the menu draws is wasted work
+            if (now - e.lastRenderNanos < frameIntervalNanos()) continue
+            e.lastRenderNanos = now
             val rectW = (e.fw * main.width).toInt()
             val rectH = (e.fh * main.height).toInt()
             if (rectW <= 0 || rectH <= 0) continue
@@ -131,6 +140,9 @@ object PlayerPreviewOffscreen {
     private fun resetSkiaContext() {
         if (SkiaCtx.isVulkanMode) SkiaCtx.directContext.resetAll() else SkiaCtx.directContext.resetGLAll()
     }
+
+    private fun frameIntervalNanos(): Long =
+        if (PolyPlusPerformanceConfig.lowEndMode) LOW_END_PREVIEW_FRAME_NANOS else PREVIEW_FRAME_NANOS
 
     fun draw(entry: Entry, canvas: Canvas, width: Float, height: Float) {
         entry.lastDrawNanos = System.nanoTime()

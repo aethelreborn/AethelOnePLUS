@@ -9,6 +9,7 @@ import org.polyfrost.oneconfig.api.config.v1.annotations.Include
 import org.polyfrost.oneconfig.api.config.v1.annotations.Slider
 import org.polyfrost.oneconfig.api.config.v1.annotations.Switch
 import org.polyfrost.polyplus.PolyPlusConstants
+import org.polyfrost.polyplus.client.features.MainMenuPerformance
 import org.polyfrost.polyplus.client.gui.MainMenuBackground
 import org.polyfrost.polyplus.client.utils.ClientPlatform
 
@@ -230,11 +231,16 @@ object PolyPlusMainMenuConfig : Config(
         }.getOrDefault(fallback)
     }
 
+    /** The frame cap the user asked for, before the machine had its say about it. */
     @JvmStatic
-    fun activeMainMenuFpsLimit(): Int =
+    fun baseMainMenuFpsLimit(): Int =
         when (mainMenuFpsLimitMode) {
             MainMenuFpsLimitMode.VANILLA -> VANILLA_MAIN_MENU_FPS_LIMIT
             MainMenuFpsLimitMode.SMART -> defaultMainMenuFpsLimit()
             MainMenuFpsLimitMode.CUSTOM -> mainMenuFpsLimit
         }
+
+    /** The frame cap the menu runs at, which the machine can lower when it cannot keep up. */
+    @JvmStatic
+    fun activeMainMenuFpsLimit(): Int = MainMenuPerformance.cap(baseMainMenuFpsLimit())
 }
