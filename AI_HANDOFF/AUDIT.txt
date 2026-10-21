@@ -31,10 +31,9 @@ looked at the machine at all. Worse, PolyPlus forced the frame rate to 260 FPS
 with vsync off, which is the fastest thing you can do to a laptop: the
 processor and the graphics card throttle themselves within minutes.
 
-Four waves, each green on all ten game versions (1.8.9, 1.21.1, 1.21.4, 1.21.5,
+Seven waves, each green on all ten game versions (1.8.9, 1.21.1, 1.21.4, 1.21.5,
 1.21.8, 1.21.10, 1.21.11, 26.1, 26.2, 26.3) with the rolling release published
 after every push.
-
 1. `31198fe` **feat(performance)** — a new OneConfig performance page
    (`polyplus-performance.json`, `Category.PERFORMANCE`):
    - *Low-End Mode*: frame cap 60, render distance 6, simulation distance 5,
@@ -70,9 +69,17 @@ after every push.
    is told as well (`polydium/graphics-api` and `polydium/auto-vulkan` in the
    game folder) so the next launch does not flip it back.
 
-5. `/polyplus performance` prints the frame rate, the renderer, the graphics
-   backend and everything that holds the frame rate back, so the report can be
-   asked for instead of waited for.
+5. `/polyplus performance` prints the frame rate, the frame rate cap, the renderer,
+   the graphics backend, the bundled performance mod and everything that holds the
+   frame rate back, so the report can be asked for instead of waited for.
+
+6. `3a86519` **feat(performance)** — the performance report names the bundled
+   performance mod and the version of it that is running, because Polydium is a
+   mod of its own and the report should say whether it is there.
+
+7. `a4c76cf` **feat(performance)** — the report also comes from the main menu,
+   which is where a slow machine usually shows itself first, and it says where
+   the frame rate was measured.
 
 What Polydium is, since it is asked about: the Polyfrost performance mod, a
 separate mod (`org.polyfrost:polydium`) that PolyPlus bundles inside its jar.
