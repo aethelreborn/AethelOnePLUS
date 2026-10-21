@@ -33,6 +33,7 @@ import org.polyfrost.polyplus.client.features.DefaultSettings
 import org.polyfrost.polyplus.client.features.JvmAdvisor
 import org.polyfrost.polyplus.client.features.ModpackDiff
 import org.polyfrost.polyplus.client.features.OnboardingFeatures
+import org.polyfrost.polyplus.client.features.PerformanceMode
 import org.polyfrost.polyplus.client.gui.VanillaMenuButton
 import org.polyfrost.polyplus.client.gui.preview.PlayerPreviewRenderer
 import org.polyfrost.polyplus.client.host.HostWorldManager
@@ -156,6 +157,7 @@ object PolyPlusClient {
         step("config preload") { PolyPlusConfig.preload() }
         step("main menu config preload") { PolyPlusMainMenuConfig.preload() }
         step("cosmetics config preload") { PolyPlusCosmeticsConfig.preload() }
+        step("performance config preload") { PolyPlusPerformanceConfig.preload() }
         step("privacy enforcement") { PrivacyEnforcement.syncConfig() }
         step("legal documents") {
             if (PrivacyConsent.state() == PrivacyConsent.State.ACCEPTED && !PrivacyConsent.managedByLauncher) {
@@ -170,6 +172,7 @@ object PolyPlusClient {
         //? if >= 26.2
         step("rrls crash guard") { RrlsCrashGuard.initialize() }
         step("adaptive blur") { AdaptiveBlurDefaults.initialize() }
+        step("performance mode") { PerformanceMode.initialize() }
         step("jvm advisor") { JvmAdvisor.initialize() }
         step("modpack diff") { ModpackDiff.logAsync() }
         step("login gate") { MinecraftLoginGate.register() }

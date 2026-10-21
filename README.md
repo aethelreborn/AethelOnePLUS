@@ -47,6 +47,16 @@ A new title screen with Quickplay for your last servers, a 3D preview of your pl
 - A Windows sensitivity converter in the controls screen (1.8.9)
 - Polydium, our performance mod, is included
 
+### Performance
+
+Polydium is the Polyfrost performance mod, and it is bundled inside the PolyPlus jar, so the render optimisations are always there without installing anything else. It carries the mixins that skip the work the vanilla renderer does not need, and on the newer versions it can draw through Vulkan.
+
+The OneClient performance settings go one step further and look after the machine the game runs on:
+
+- **Low-End Mode** caps the frame rate at 60 FPS, shortens the render and simulation distances, cuts the particles, drops the entity shadows and turns the motion blur off. Turn it off and your video options come back.
+- **Adaptive Performance** watches the frame rate while you play and caps the game at 30 FPS with the motion blur off whenever it stays low, then hands the cap back once the frame rate recovers.
+- **Performance report**: when the frame rate is bad, OneClient tells you what holds it back. On a laptop the most common cause is that the game draws on the processor instead of the graphics card, which happens when the graphics driver is missing or when the Vulkan backend falls back to software rendering.
+
 ## Terms of Service
 
 The online features need you to accept the Polyfrost [Terms of Service](https://polyfrost.org/legal/terms) and [Privacy Policy](https://polyfrost.org/legal/privacy). If you decline, hosting, friends, chat and cosmetics stay off. You can change your answer under Privacy in the PolyPlus settings.
