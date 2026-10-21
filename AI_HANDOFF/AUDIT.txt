@@ -81,6 +81,25 @@ after every push.
    which is where a slow machine usually shows itself first, and it says where
    the frame rate was measured.
 
+8. `39bbff9` **feat(menu)** — a more page on the main menu. The account
+   switcher, the hosting button, the social menu and the cosmetics sat in a
+   column on the right, next to the OneClient logo, and the row of mod buttons at
+   the bottom could run into the buttons under the logo. They live on a more page
+   now, the more page covers the whole menu so nothing can sit on the logo while
+   it is open, and the centre column always keeps the space the mod buttons
+   need.
+
+9. Launcher side, `aethelreborn/AethelONE` `e2309c80` **feat(packages)** — the
+   launcher asked Modrinth for the newest PolyPlus release, and that release
+   never carries the patched build, so a browser-installed PolyPlus stayed on
+   whatever version it was installed with while the mirror kept publishing newer
+   ones. The mirror manifest decides now: the newest build for the instance's
+   game version is offered as a normal mod update, it is applied with the
+   launcher's own auto-update mode before a launch, and the patched jar is the
+   one that lands in the instance. An older mirror build never replaces a newer
+   install and an unreachable manifest leaves the installed mod alone. Shipped in
+   AethelONE 2.31.0.
+
 What Polydium is, since it is asked about: the Polyfrost performance mod, a
 separate mod (`org.polyfrost:polydium`) that PolyPlus bundles inside its jar.
 It carries the mixins that skip work the vanilla renderer does not need, and on
