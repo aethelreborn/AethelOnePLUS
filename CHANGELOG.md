@@ -4,6 +4,8 @@
 - Added a performance report that tells you what holds the frame rate back, including the most common cause on a laptop: the game drawing on the processor instead of the graphics card
 - The main menu now lowers its frame cap when the machine cannot reach it, and puts it back when it can
 - The 3D player preview on the main menu is no longer redrawn for every single frame
+- Added a frame rate cap to the performance settings, so the game can be held at the refresh rate, 120, 60 or 30 frames a second instead of running uncapped
+- The low-end mode now also drops the graphics to the fast setting and the mipmaps, and the game keeps the frame rate cap it had before
 
 ## 1.3.10
 - Fixed a crash with Cubes Without Borders when using a custom fullscreen resolution with Vulkan

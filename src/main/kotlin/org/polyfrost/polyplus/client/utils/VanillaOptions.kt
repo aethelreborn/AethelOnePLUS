@@ -17,6 +17,7 @@ object VanillaOptions {
     const val SIMULATION_DISTANCE = "simulationDistance"
     const val PARTICLES = "particles"
     const val MIPMAP_LEVELS = "mipmapLevels"
+    const val GRAPHICS_MODE = "graphicsMode"
 
     /** The particle levels, from the most to the least expensive. */
     val PARTICLE_LEVELS = listOf("ALL", "DECREASED", "MINIMAL")
@@ -87,9 +88,45 @@ object VanillaOptions {
         return changed
     }
 
-    /** The particle level, counted from the most expensive one down. */
-    fun particleLevel(options: Any?): Int? {
+    /** The name of an enum option, or its number when the version keeps it as a plain field. */
+    fun enumOption(options: Any?, vararg names: String): String? {
         if (options == null) return null
+        for (name in names) {
+            val holder = holder(options, name)
+            if (holder != null) {
+                val value = holder.value()
+                if (value is Enum<*>) return value.name
+                continue
+            }
+            val field = field(options, name) ?: continue
+            if (field.type == Integer.TYPE) return field.getInt(options).toString()
+        }
+        return null
+    }
+
+    fun setEnumOption(options: Any?, constant: String, vararg names: String): Boolean {
+        if (options == null) return false
+        for (name in names) {
+            val holder = holder(options, name)
+            if (holder != null) {
+                val value = holder.value()
+                if (value !is Enum<*>) continue
+                val target = value.javaClass.enumConstants
+                    ?.firstOrNull { (it as Enum<*>).name == constant } ?: continue
+                return holder.write(target)
+            }
+            val field = field(options, name) ?: continue
+            if (field.type == Integer.TYPE) {
+                val number = constant.toIntOrNull() ?: continue
+                field.setInt(options, number)
+                return true
+            }
+        }
+        return false
+    }
+
+    /** The particle level, counted from the most expensive one down. */
+    fun particleLevel(options: Any?): Int? {        if (options == null) return null
         val holder = holder(options, PARTICLES)
         if (holder != null) {
             val value = holder.value()

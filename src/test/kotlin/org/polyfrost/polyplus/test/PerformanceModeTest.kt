@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.polyfrost.polyplus.client.FrameRateCap
 import org.polyfrost.polyplus.client.features.PerformanceMode
 import org.polyfrost.polyplus.compat.PolydiumDefaults
 import java.nio.file.Path
@@ -64,6 +65,16 @@ class PerformanceModeTest {
         assertEquals(PerformanceMode.LOW_END_RENDER_DISTANCE, PerformanceMode.lowEndRenderDistance(0))
         assertEquals(PerformanceMode.LOW_END_SIMULATION_DISTANCE, PerformanceMode.lowEndSimulationDistance(12))
         assertEquals(4, PerformanceMode.lowEndSimulationDistance(4))
+    }
+
+    @Test
+    fun `the frame rate cap the user picked is the one the game gets`() {
+        assertEquals(260, PerformanceMode.capValue(FrameRateCap.UNLIMITED, refreshRate = 144))
+        assertEquals(144, PerformanceMode.capValue(FrameRateCap.REFRESH_RATE, refreshRate = 144))
+        assertEquals(60, PerformanceMode.capValue(FrameRateCap.REFRESH_RATE, refreshRate = 0))
+        assertEquals(120, PerformanceMode.capValue(FrameRateCap.FPS_120, refreshRate = 144))
+        assertEquals(60, PerformanceMode.capValue(FrameRateCap.FPS_60, refreshRate = 144))
+        assertEquals(30, PerformanceMode.capValue(FrameRateCap.FPS_30, refreshRate = 144))
     }
 
     @Test

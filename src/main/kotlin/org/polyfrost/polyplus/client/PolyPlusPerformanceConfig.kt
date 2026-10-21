@@ -1,6 +1,7 @@
 package org.polyfrost.polyplus.client
 
 import org.polyfrost.oneconfig.api.config.v1.Config
+import org.polyfrost.oneconfig.api.config.v1.annotations.Dropdown
 import org.polyfrost.oneconfig.api.config.v1.annotations.Include
 import org.polyfrost.oneconfig.api.config.v1.annotations.Slider
 import org.polyfrost.oneconfig.api.config.v1.annotations.Switch
@@ -51,6 +52,17 @@ object PolyPlusPerformanceConfig : Config(
     var lowFpsThreshold = 24
 
     @JvmStatic
+    @Dropdown(
+        title = "Frame Rate Cap",
+        description = "The frame rate the game is allowed to reach. Unlimited is the fastest on a strong machine, " +
+            "but on a laptop it makes the processor and the graphics card run hot enough to start slowing the " +
+            "game down again. The low-end mode overrides this with its own cap.",
+        options = ["Unlimited", "Monitor refresh rate", "120 FPS", "60 FPS", "30 FPS"],
+        subcategory = "Performance",
+    )
+    var frameRateCap: FrameRateCap = FrameRateCap.UNLIMITED
+
+    @JvmStatic
     @Switch(
         title = "Performance Notifications",
         description = "Tell you what holds your frame rate back and when the adaptive performance changes " +
@@ -84,6 +96,13 @@ object PolyPlusPerformanceConfig : Config(
     var savedMipmapLevels = -1
 
     @JvmStatic @Include
+    var savedGraphicsMode = ""
+
+    /** Whether the frame rate cap was ever picked by hand, so it survives the next launch. */
+    @JvmStatic @Include
+    var frameRateCapTouched = false
+
+    @JvmStatic @Include
     var adaptiveSavedFrameCap = 0
 
     init {
@@ -93,6 +112,10 @@ object PolyPlusPerformanceConfig : Config(
 
         addCallback("adaptivePerformance") {
             PerformanceMode.onAdaptiveChanged()
+        }
+
+        addCallback("frameRateCap") {
+            PerformanceMode.onFrameRateCapChanged()
         }
     }
 }

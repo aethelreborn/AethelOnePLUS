@@ -6,8 +6,10 @@ import org.polyfrost.oneconfig.api.event.v1.eventHandler
 import org.polyfrost.oneconfig.api.event.v1.events.FramebufferRenderEvent
 import org.polyfrost.oneconfig.api.notifications.v1.NotificationAction
 import org.polyfrost.oneconfig.api.notifications.v1.Notifications
+import org.polyfrost.polyplus.client.FrameRateCap
 import org.polyfrost.polyplus.client.PolyPlusConfig
 import org.polyfrost.polyplus.client.PolyPlusPerformanceConfig
+import org.polyfrost.polyplus.client.utils.ClientPlatform
 import org.polyfrost.polyplus.client.utils.VanillaOptions
 
 /**
@@ -35,6 +37,9 @@ object PerformanceMode {
 
     /** The cap Minecraft calls unlimited. */
     const val UNLIMITED_FRAME_CAP = 260
+
+    /** The refresh rate the game falls back on when the monitor cannot be asked. */
+    const val FALLBACK_REFRESH_RATE = 60
 
     private const val SAMPLE_WINDOW_MS = 5_000L
     private const val LOW_WINDOWS_BEFORE_ADAPT = 2
@@ -118,7 +123,7 @@ object PerformanceMode {
         if (current <= 0) LOW_END_SIMULATION_DISTANCE else minOf(current, LOW_END_SIMULATION_DISTANCE)
 
     fun initialize() {
-        if (PolyPlusPerformanceConfig.lowEndMode) applyLowEndMode()
+        if (PolyPlusPerformanceConfig.lowEndMode) applyLowEndMode() else applyFrameRateCap()
         eventHandler { _: FramebufferRenderEvent.End -> onFrame() }
     }
 
@@ -172,6 +177,40 @@ object PerformanceMode {
         }
     }
 
+    /** The frame rate the game is allowed to reach for a cap the user picked. */
+    internal fun capValue(mode: FrameRateCap, refreshRate: Int): Int = when (mode) {
+        FrameRateCap.UNLIMITED -> UNLIMITED_FRAME_CAP
+        FrameRateCap.REFRESH_RATE -> if (refreshRate > 0) refreshRate else FALLBACK_REFRESH_RATE
+        FrameRateCap.FPS_120 -> 120
+        FrameRateCap.FPS_60 -> 60
+        FrameRateCap.FPS_30 -> 30
+    }
+
+    fun onFrameRateCapChanged() {
+        PolyPlusPerformanceConfig.frameRateCapTouched = true
+        PolyPlusPerformanceConfig.save()
+        applyFrameRateCap()
+    }
+
+    /** Puts the frame rate cap the user picked on the video options. */
+    fun applyFrameRateCap() {
+        // a cap nobody picked leaves the video options alone
+        if (!PolyPlusPerformanceConfig.frameRateCapTouched) return
+        // the low-end mode owns the cap while it is on
+        if (PolyPlusPerformanceConfig.lowEndMode) return
+        val options = Minecraft.getInstance().options ?: return
+        val refreshRate = runCatching { ClientPlatform.monitorRefreshRate() }.getOrDefault(0)
+        val cap = capValue(PolyPlusPerformanceConfig.frameRateCap, refreshRate)
+        VanillaOptions.setIntOption(
+            options,
+            cap,
+            VanillaOptions.FRAME_RATE_LIMIT,
+            VanillaOptions.FRAME_RATE_LIMIT_LEGACY,
+        )
+        options.save()
+        logger.info("The frame rate cap is now {}", cap)
+    }
+
     /**
      * Cuts the work the game asks for when the machine cannot keep up: the frame
      * rate is capped, the render and simulation distances shrink, the particles
@@ -191,6 +230,8 @@ object PerformanceMode {
                 VanillaOptions.boolOption(options, VanillaOptions.ENTITY_SHADOWS)?.let { if (it) 1 else 0 } ?: -1
             PolyPlusPerformanceConfig.savedMipmapLevels =
                 VanillaOptions.intOption(options, VanillaOptions.MIPMAP_LEVELS) ?: -1
+            PolyPlusPerformanceConfig.savedGraphicsMode =
+                VanillaOptions.enumOption(options, VanillaOptions.GRAPHICS_MODE).orEmpty()
             PolyPlusPerformanceConfig.lowEndApplied = true
         }
 
@@ -215,6 +256,9 @@ object PerformanceMode {
         VanillaOptions.setBoolOption(options, false, VanillaOptions.ENTITY_SHADOWS)
         VanillaOptions.setParticleLevel(options, PARTICLES_DECREASED)
         VanillaOptions.setIntOption(options, 0, VanillaOptions.MIPMAP_LEVELS)
+        if (!VanillaOptions.setEnumOption(options, "FAST", VanillaOptions.GRAPHICS_MODE)) {
+            VanillaOptions.setEnumOption(options, "1", VanillaOptions.GRAPHICS_MODE)
+        }
         options.save()
 
         disableBlur()
@@ -250,11 +294,16 @@ object PerformanceMode {
         }
         val mipmapLevels = PolyPlusPerformanceConfig.savedMipmapLevels
         if (mipmapLevels >= 0) VanillaOptions.setIntOption(options, mipmapLevels, VanillaOptions.MIPMAP_LEVELS)
+        val graphicsMode = PolyPlusPerformanceConfig.savedGraphicsMode
+        if (graphicsMode.isNotBlank()) {
+            VanillaOptions.setEnumOption(options, graphicsMode, VanillaOptions.GRAPHICS_MODE)
+        }
         options.save()
 
         PolyPlusPerformanceConfig.lowEndApplied = false
         PolyPlusPerformanceConfig.save()
         restoreBlur()
+        applyFrameRateCap()
         logger.info("Low-end mode is off, the video options are back")
     }
 
