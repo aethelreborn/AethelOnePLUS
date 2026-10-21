@@ -96,6 +96,20 @@ class PerformanceModeTest {
     }
 
     @Test
+    fun `the report says where the frame rate was measured`() {
+        val findings = PerformanceMode.diagnose(
+            renderer = "NVIDIA GeForce RTX 3060",
+            backend = "default",
+            averageFps = 12,
+            frameCap = 60,
+            threshold = 24,
+            where = "in the main menu",
+        )
+
+        assertTrue(findings.any { it.title.contains("in the main menu") }, findings.toString())
+    }
+
+    @Test
     fun `the low-end mode never raises the distances`() {
         assertEquals(PerformanceMode.LOW_END_RENDER_DISTANCE, PerformanceMode.lowEndRenderDistance(12))
         assertEquals(4, PerformanceMode.lowEndRenderDistance(4))

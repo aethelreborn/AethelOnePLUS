@@ -91,6 +91,7 @@ object PerformanceMode {
         averageFps: Int,
         frameCap: Int,
         threshold: Int,
+        where: String = "in the world",
     ): List<Finding> {
         val findings = mutableListOf<Finding>()
         if (isSoftwareRenderer(renderer)) {
@@ -115,7 +116,7 @@ object PerformanceMode {
         if (averageFps in 1 until threshold) {
             findings += Finding(
                 "low-fps",
-                "The game is running at $averageFps FPS",
+                "The game is running at $averageFps FPS $where",
                 "Under $threshold frames per second the game feels unplayable. Turn on the low-end mode in the " +
                     "PolyPlus performance settings to cut the render distance, the particles and the frame rate cap.",
             )
@@ -408,9 +409,18 @@ object PerformanceMode {
     }
 
     private fun diagnoseOnce() {
-        if (diagnosed) return
         // the first seconds in a world are spent loading chunks, so they say nothing about the frame rate
         if (windows < DIAGNOSE_WINDOWS) return
+        report(averageFps, "in the world")
+    }
+
+    /**
+     * Shows the performance report once there is something to say. Both the main
+     * menu and a world can call it: whichever runs first and finds a problem
+     * gets the report, and the other one stays quiet.
+     */
+    fun report(fps: Int, where: String) {
+        if (diagnosed) return
         if (!PolyPlusPerformanceConfig.performanceNotifications) return
         val options = Minecraft.getInstance().options ?: return
         val frameCap = VanillaOptions.intOption(
@@ -421,14 +431,12 @@ object PerformanceMode {
         val findings = diagnose(
             rendererString(),
             GraphicsBackend.current(),
-            averageFps,
+            fps,
             frameCap,
             PolyPlusPerformanceConfig.lowFpsThreshold,
+            where,
         )
-        if (findings.isEmpty()) {
-            diagnosed = true
-            return
-        }
+        if (findings.isEmpty()) return
         diagnosed = true
 
         val message = findings.joinToString("\n\n") { "${it.title}. ${it.message}" }

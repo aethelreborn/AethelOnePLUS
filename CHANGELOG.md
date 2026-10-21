@@ -5,6 +5,7 @@
 - The performance report can put the game back on OpenGL when Polydium switched it to Vulkan and the Vulkan driver is the slow part
 - Added `/polyplus performance`, which prints the frame rate, the renderer, the graphics backend and everything that holds the frame rate back
 - The performance report names the bundled performance mod and the version of it that is running
+- The performance report also covers the main menu, so a slow menu is named as well
 - The main menu now lowers its frame cap when the machine cannot reach it, and puts it back when it can
 - The 3D player preview on the main menu is no longer redrawn for every single frame
 - Added a frame rate cap to the performance settings, so the game can be held at the refresh rate, 120, 60 or 30 frames a second instead of running uncapped

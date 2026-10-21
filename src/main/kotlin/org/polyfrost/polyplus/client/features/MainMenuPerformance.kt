@@ -23,11 +23,13 @@ object MainMenuPerformance {
     internal val CAPS = listOf(120, 60, 30, 20, 15)
 
     private const val WINDOW_NANOS = 5_000_000_000L
+    private const val DIAGNOSE_WINDOWS = 2
     private const val SHORT_OF_TARGET = 0.9
     private const val ABOVE_TARGET = 1.05
 
     private var windowStartNanos = 0L
     private var frames = 0
+    private var windows = 0
     private var learnedCap = 0
 
     fun initialize() {
@@ -54,6 +56,11 @@ object MainMenuPerformance {
     }
 
     private fun onWindow(averageFps: Int, base: Int) {
+        windows++
+        // the menu is the first thing a player sees, so a slow one is worth reporting
+        if (windows >= DIAGNOSE_WINDOWS) {
+            PerformanceMode.report(averageFps, "in the main menu")
+        }
         val current = cap(base)
         val next = nextCap(current, averageFps, base)
         if (next == current) return
