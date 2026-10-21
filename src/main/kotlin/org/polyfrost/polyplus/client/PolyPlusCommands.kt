@@ -9,6 +9,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
 import org.apache.logging.log4j.LogManager
 import org.polyfrost.polyplus.PolyPlusConstants
+import org.polyfrost.polyplus.client.features.PerformanceMode
 import org.polyfrost.polyplus.client.gui.PolyPlusMainMenuScreen
 import org.polyfrost.polyplus.client.network.p2p.P2PSessionManager
 import org.polyfrost.polyplus.client.resourcepack.HostSharedPack
@@ -73,6 +74,15 @@ object PolyPlusCommands {
                     Component.literal("PolyPlus Client version: ${PolyPlusConstants.VERSION}")
                         .withStyle(ChatFormatting.AQUA),
                 )
+                Command.SINGLE_SUCCESS
+            })
+            .then(commands.literal("performance").executes { ctx ->
+                PerformanceMode.reportLines().forEach { line ->
+                    ctx.source.sendFeedback(
+                        Component.literal(line)
+                            .withStyle(ChatFormatting.GRAY),
+                    )
+                }
                 Command.SINGLE_SUCCESS
             })
             .then(commands.literal("sharepack").executes { ctx ->

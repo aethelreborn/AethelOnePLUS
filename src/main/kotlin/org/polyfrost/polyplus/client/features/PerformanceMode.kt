@@ -6,6 +6,7 @@ import org.polyfrost.oneconfig.api.event.v1.eventHandler
 import org.polyfrost.oneconfig.api.event.v1.events.FramebufferRenderEvent
 import org.polyfrost.oneconfig.api.notifications.v1.NotificationAction
 import org.polyfrost.oneconfig.api.notifications.v1.Notifications
+import org.polyfrost.oneconfig.api.platform.v1.Platform
 import org.polyfrost.polyplus.client.FrameRateCap
 import org.polyfrost.polyplus.client.PolyPlusConfig
 import org.polyfrost.polyplus.client.PolyPlusPerformanceConfig
@@ -149,6 +150,41 @@ object PerformanceMode {
 
     fun onAdaptiveChanged() {
         if (!PolyPlusPerformanceConfig.adaptivePerformance) releaseAdaptive()
+    }
+
+    /** The lines the performance report puts in the chat. */
+    fun reportLines(): List<String> {
+        val options = Minecraft.getInstance().options
+        val frameCap = options?.let {
+            VanillaOptions.intOption(it, VanillaOptions.FRAME_RATE_LIMIT, VanillaOptions.FRAME_RATE_LIMIT_LEGACY)
+        } ?: 0
+        val renderer = rendererString() ?: "unknown"
+        val backend = GraphicsBackend.current()
+        val fps = currentFps()
+        val findings = diagnose(
+            renderer,
+            backend,
+            fps,
+            frameCap ?: 0,
+            PolyPlusPerformanceConfig.lowFpsThreshold,
+        )
+        return buildList {
+            add("Frame rate: $fps FPS")
+            add("Frame rate cap: ${frameCap ?: 0}")
+            add("Renderer: $renderer")
+            add("Graphics backend: $backend")
+            add("Low-end mode: ${if (PolyPlusPerformanceConfig.lowEndMode) "on" else "off"}")
+            if (findings.isEmpty()) {
+                add("Nothing is holding the frame rate back.")
+            } else {
+                findings.forEach { add("${it.title}. ${it.message}") }
+            }
+        }
+    }
+
+    private fun currentFps(): Int {
+        if (averageFps > 0) return averageFps
+        return runCatching { Platform.compatibility().fps().toInt() }.getOrDefault(0)
     }
 
     private fun onFrame() {

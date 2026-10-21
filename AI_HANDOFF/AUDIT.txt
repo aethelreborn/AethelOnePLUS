@@ -1,0 +1,99 @@
+# PolyPlus — Session Audit
+
+This is the PolyPlus half of the audit trail. The launcher half lives in the
+AethelONE repository, in `AI_HANDOFF/AUDIT.txt`.
+
+Repo: `aethelreborn/AethelOnePLUS` (fork of `Polyfrost/PolyPlus`).
+Remote in this checkout: `origin` → the fork. Never push to `Polyfrost/PolyPlus`.
+CI: `Build with Gradle` (`.github/workflows/build.yml`) builds all ten game
+versions on every push and republishes the rolling `continuous` release.
+`Sync upstream PolyPlus` rebases onto `Polyfrost/PolyPlus` every 30 minutes.
+
+Rules of engagement for this repo:
+
+- No local build. The machine has 3.4 GB of RAM, two cores and no JDK, so
+  Gradle cannot run here. Push and watch CI: green is the only verification.
+- One push, one full ten-version build. Keep the diff small enough to review.
+- `deps.polydium = "1.1.2"` stays pinned: it is the newest version the
+  Polyfrost repository serves.
+- The version lives in `stonecutter.properties.toml` (`mod.version`) and the
+  changelog in `CHANGELOG.md`; both move together.
+
+---
+
+## 2026-10-21 — The client finally looks after the machine it runs on (1.3.11)
+
+The complaint: the client is supposed to be fast, and on a weak laptop it gives
+two or three frames per second. The perf mixins had already been moved out of
+PolyPlus into Polydium upstream (`ca60a2e` "move all performance stuff out of
+polyplus"), so PolyPlus shipped no performance code of its own and nothing in it
+looked at the machine at all. Worse, PolyPlus forced the frame rate to 260 FPS
+with vsync off, which is the fastest thing you can do to a laptop: the
+processor and the graphics card throttle themselves within minutes.
+
+Four waves, each green on all ten game versions (1.8.9, 1.21.1, 1.21.4, 1.21.5,
+1.21.8, 1.21.10, 1.21.11, 26.1, 26.2, 26.3) with the rolling release published
+after every push.
+
+1. `31198fe` **feat(performance)** — a new OneConfig performance page
+   (`polyplus-performance.json`, `Category.PERFORMANCE`):
+   - *Low-End Mode*: frame cap 60, render distance 6, simulation distance 5,
+     particles decreased, entity shadows off, mipmaps off, graphics fast, motion
+     blur off. Every value it changes is saved and put back when it is turned
+     off.
+   - *Adaptive Performance*: caps the game at 30 FPS while the frame rate stays
+     low and hands the cap back when it recovers.
+   - *Performance report*: names what holds the frame rate back — a renderer
+     that draws on the processor (llvmpipe, lavapipe, SwiftShader, the
+     Microsoft basic driver), an uncapped frame rate, and the Vulkan backend.
+   - Vanilla options are read and written through reflection
+   (`client/utils/VanillaOptions.kt`) because 1.8.9 keeps plain fields while the
+   modern versions hand out option accessors; an option a version does not have
+   is skipped instead of failing.
+
+2. `e6fc230` **feat(performance)** — the main menu stops asking for frames the
+   machine cannot deliver: `MainMenuPerformance` walks the menu cap down the
+   ladder 120/60/30/20/15 when the menu cannot reach it and back up when it
+   can, and the 3D player preview is drawn at 30 frames a second instead of
+   once per menu frame.
+
+3. `a6582c3` **feat(performance)** — a frame rate cap in the performance page
+   (the monitor refresh rate, 120, 60 or 30). It only touches the video options
+   once it has been picked by hand, so a cap set in the vanilla options keeps
+   working.
+
+4. `52f6bb0` **fix(performance)** — Polydium puts the game on Vulkan by itself
+   when it sees a discrete graphics card, which is what a gaming laptop has.
+   When that driver falls back to the processor the game runs at a couple of
+   frames per second and there was no way back from inside the game. The
+   performance report now offers to switch the game back to OpenGL, and Polydium
+   is told as well (`polydium/graphics-api` and `polydium/auto-vulkan` in the
+   game folder) so the next launch does not flip it back.
+
+5. `/polyplus performance` prints the frame rate, the renderer, the graphics
+   backend and everything that holds the frame rate back, so the report can be
+   asked for instead of waited for.
+
+What Polydium is, since it is asked about: the Polyfrost performance mod, a
+separate mod (`org.polyfrost:polydium`) that PolyPlus bundles inside its jar.
+It carries the mixins that skip work the vanilla renderer does not need, and on
+1.21.11 and newer it can draw through Vulkan. The low-end mode also turns
+Polydium's section cache off, because that copy of the built chunk sections is
+memory a weak machine cannot spare.
+
+LESSON: a client that bundles a performance mod still has to look after the
+machine, because the bundled mod only knows how to draw faster, not that the
+machine is drawing on the processor or that an uncapped frame rate is what makes
+a laptop throttle itself into single digits. A bad frame rate has a reason, and
+naming it (software renderer, uncapped, the wrong graphics backend) is worth
+more than any optimisation that hides it.
+
+LESSON: Polydium's early Vulkan switch is invisible from inside the game and
+it is the first thing to check on a laptop that suddenly runs at a couple of
+frames per second. A broken Vulkan driver on a discrete graphics card is the
+difference between a playable game and an unplayable one, and the fix is one
+file in the game folder.
+
+LESSON: an option that only applies once the user picks it by hand must not
+write anything on every launch, or it silently overwrites a setting the user
+made somewhere else. The frame rate cap keeps a flag for that reason.
