@@ -247,6 +247,7 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
     override fun compose() {
         val mc = Minecraft.getInstance()
         var quickplay by remember { mutableStateOf<List<QuickplayEntry>?>(null) }
+        var showMore by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
             withFrameNanos { }
@@ -340,6 +341,7 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
                         *///?}
                     },
                     mods = { PolyPlusOneConfigIntegration.openMods() },
+                    more = { showMore = true },
                     //? if >= 26.3 {
                     // the window follows the option now
                     fullscreen = {
@@ -356,6 +358,8 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
                 ),
                 quickplay = quickplay,
                 pingTick = pingTick,
+                showMore = showMore,
+                onCloseMore = { showMore = false },
             )
         }
     }
@@ -617,6 +621,7 @@ private class MenuActions(
     val realms: (() -> Unit)?,
     val settings: () -> Unit,
     val mods: () -> Unit,
+    val more: () -> Unit,
     val fullscreen: () -> Unit,
     val quit: () -> Unit,
     val connect: (ServerData) -> Unit,
@@ -669,6 +674,8 @@ private fun MainMenu(
     actions: MenuActions,
     quickplay: List<QuickplayEntry>?,
     pingTick: Int,
+    showMore: Boolean,
+    onCloseMore: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -678,7 +685,12 @@ private fun MainMenu(
             CompositionLocalProvider(LocalDensity provides scaledDensity(scale)) {
                 var rightColumnHeightPx by remember { mutableStateOf(0) }
                 val rightColumnHeight = with(LocalDensity.current) { rightColumnHeightPx.toDp() }
-                val columnBottomPadding = ((BASE_HEIGHT.dp - rightColumnHeight) / 2).coerceAtLeast(0.dp)
+                // the mod buttons sit at the bottom, so the centre column never reaches down to them
+                val modBarSpace = if (PolyPlusMainMenuConfig.hideMainMenuModButtons) 0.dp else unscaled(75f)
+                val columnBottomPadding = maxOf(
+                    ((BASE_HEIGHT.dp - rightColumnHeight) / 2).coerceAtLeast(0.dp),
+                    modBarSpace,
+                )
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -704,7 +716,6 @@ private fun MainMenu(
                         .align(Alignment.CenterEnd)
                         .padding(end = unscaled(50f))
                         .onSizeChanged { rightColumnHeightPx = it.height },
-                    screen,
                 )
                 WindowControls(
                     Modifier.align(Alignment.TopEnd).padding(unscaled(16f)),
@@ -726,6 +737,14 @@ private fun MainMenu(
                     actions,
                 )
                 if (!PolyPlusMainMenuConfig.hideMainMenuFooter) Footer(Modifier.fillMaxSize(), unscaled)
+                // the more page covers the whole menu, so nothing can sit on the logo
+                if (showMore) {
+                    MorePage(
+                        Modifier.fillMaxSize(),
+                        screen,
+                        onCloseMore,
+                    )
+                }
             }
         }
     }
@@ -762,9 +781,10 @@ private fun CenterColumn(modifier: Modifier, actions: MenuActions) {
                 PillButton("Realms", ASSETS + "globe-01.svg", Modifier.fillMaxWidth(), realms)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(15.dp)) {
+                PillButton("More", ASSETS + "dots-vertical.svg", Modifier.weight(1f), actions.more)
                 PillButton("Settings", ASSETS + "settings-02.svg", Modifier.weight(1f), actions.settings)
-                PillButton("Mods", ASSETS + "settings-04.svg", Modifier.weight(1f), actions.mods)
             }
+            PillButton("Mods", ASSETS + "settings-04.svg", Modifier.fillMaxWidth(), actions.mods)
         }
     }
 }
@@ -855,7 +875,7 @@ private fun serverStatusText(server: ServerData): String {
 }
 
 @Composable
-private fun RightColumn(modifier: Modifier, screen: Screen) {
+private fun RightColumn(modifier: Modifier) {
     Column(
         modifier = modifier.width(300.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -880,29 +900,76 @@ private fun RightColumn(modifier: Modifier, screen: Screen) {
             )
         }
         }
-        if (!PolyPlusMainMenuConfig.hideMainMenuAltManager) {
-            AccountPill(name = playerName())
-        }
-        if (!PolyPlusMainMenuConfig.hideMainMenuHostWorld && PrivacyConsent.allowsOnlineServices()) {
-            HostWorldButton(screen)
-        }
-        if (!PolyPlusMainMenuConfig.hideMainMenuSocial && PrivacyConsent.allowsOnlineServices()) {
-            val groups by GroupsRepository.groups.collectAsState()
-            PillButton(
-                "Social",
-                ASSETS + "message-chat-circle.svg",
+    }
+}
+
+/**
+ * Everything that does not fit on the menu itself.
+ *
+ * The account switcher, the social menu, the cosmetics and the hosting button
+ * used to sit in a column on the right, where they crowded the OneClient logo
+ * on a small window. They live here now, and the menu only keeps what a player
+ * reaches for first.
+ */
+@Composable
+private fun MorePage(modifier: Modifier, screen: Screen, onClose: () -> Unit) {
+    Box(
+        modifier.background(Color(0xD9101519)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            Modifier
+                .width(440.dp)
+                .clip(PanelShape)
+                .background(PanelBackground)
+                .border(SocialPanelBorderWidth, SocialPanelBorderBrush, PanelShape)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(
                 Modifier.fillMaxWidth(),
-                onClick = { SocialOverlay.open(screen) },
-                badge = groups.any { it.unread },
-            )
-        }
-        if (!PolyPlusMainMenuConfig.hideMainMenuCosmetics && PrivacyConsent.allowsOnlineServices()) {
-            PillButton(
-                "Cosmetics",
-                ASSETS + "diamond-01.svg",
-                Modifier.fillMaxWidth(),
-                onClick = { PolyPlusOneConfigIntegration.openCosmetics() },
-            )
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SocialText("More", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                IconButton(
+                    icon = ASSETS + "x-close.svg",
+                    tooltip = "Back to the menu",
+                    tooltipPlacement = TooltipPlacement.ABOVE_CENTER,
+                    onClick = onClose,
+                )
+            }
+            if (!PolyPlusMainMenuConfig.hideMainMenuAltManager) {
+                AccountPill(name = playerName())
+            }
+            if (!PolyPlusMainMenuConfig.hideMainMenuHostWorld && PrivacyConsent.allowsOnlineServices()) {
+                HostWorldButton(screen)
+            }
+            if (!PolyPlusMainMenuConfig.hideMainMenuSocial && PrivacyConsent.allowsOnlineServices()) {
+                val groups by GroupsRepository.groups.collectAsState()
+                PillButton(
+                    "Social",
+                    ASSETS + "message-chat-circle.svg",
+                    Modifier.fillMaxWidth(),
+                    onClick = {
+                        onClose()
+                        SocialOverlay.open(screen)
+                    },
+                    badge = groups.any { it.unread },
+                )
+            }
+            if (!PolyPlusMainMenuConfig.hideMainMenuCosmetics && PrivacyConsent.allowsOnlineServices()) {
+                PillButton(
+                    "Cosmetics",
+                    ASSETS + "diamond-01.svg",
+                    Modifier.fillMaxWidth(),
+                    onClick = {
+                        onClose()
+                        PolyPlusOneConfigIntegration.openCosmetics()
+                    },
+                )
+            }
+            PillButton("Back", ASSETS + "arrow-left.svg", Modifier.fillMaxWidth(), onClick = onClose)
         }
     }
 }
