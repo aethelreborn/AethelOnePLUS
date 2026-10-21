@@ -11,6 +11,7 @@ import org.polyfrost.polyplus.client.PolyPlusConfig
 import org.polyfrost.polyplus.client.PolyPlusPerformanceConfig
 import org.polyfrost.polyplus.client.utils.ClientPlatform
 import org.polyfrost.polyplus.client.utils.VanillaOptions
+import org.polyfrost.polyplus.compat.GraphicsBackend
 
 /**
  * Keeps the game playable on machines that cannot keep up.
@@ -82,7 +83,13 @@ object PerformanceMode {
     }
 
     /** What holds the frame rate back, ordered from the worst to the least bad. */
-    internal fun diagnose(renderer: String?, averageFps: Int, frameCap: Int, threshold: Int): List<Finding> {
+    internal fun diagnose(
+        renderer: String?,
+        backend: String,
+        averageFps: Int,
+        frameCap: Int,
+        threshold: Int,
+    ): List<Finding> {
         val findings = mutableListOf<Finding>()
         if (isSoftwareRenderer(renderer)) {
             findings += Finding(
@@ -110,6 +117,15 @@ object PerformanceMode {
                 "Under $threshold frames per second the game feels unplayable. Turn on the low-end mode in the " +
                     "PolyPlus performance settings to cut the render distance, the particles and the frame rate cap.",
             )
+            if (backend.equals("vulkan", ignoreCase = true)) {
+                findings += Finding(
+                    "vulkan-backend",
+                    "The game draws through Vulkan",
+                    "Polydium puts the game on the Vulkan backend when it sees a discrete graphics card. That is " +
+                        "the faster backend while the driver works and the slower one when it falls back to the " +
+                        "processor. If the frame rate is bad, switch the game back to OpenGL.",
+                )
+            }
         }
         return findings
     }
@@ -366,6 +382,7 @@ object PerformanceMode {
         ) ?: 0
         val findings = diagnose(
             rendererString(),
+            GraphicsBackend.current(),
             averageFps,
             frameCap,
             PolyPlusPerformanceConfig.lowFpsThreshold,
@@ -386,8 +403,33 @@ object PerformanceMode {
                     applyLowEndMode()
                 }),
             )
+            if (findings.any { it.id == "vulkan-backend" }) {
+                builder.action(
+                    NotificationAction("Switch back to OpenGL", onClick = {
+                        switchToOpenGL()
+                    }),
+                )
+            }
             builder.send()
         }.onFailure { logger.warn("Could not show the performance notification", it) }
+    }
+
+    private fun switchToOpenGL() {
+        val switched = runCatching { GraphicsBackend.switchToOpenGL() }.getOrDefault(false)
+        runCatching {
+            if (switched) {
+                Notifications.success(
+                    NOTIFICATION_TITLE,
+                    "The game goes back to OpenGL the next time it starts.",
+                )
+            } else {
+                Notifications.error(
+                    NOTIFICATION_TITLE,
+                    "The game could not be switched back to OpenGL. Change the graphics backend in the video " +
+                        "settings instead.",
+                )
+            }
+        }.onFailure { logger.warn("Could not show the graphics backend notification", it) }
     }
 
     private fun notifyAdaptive() {

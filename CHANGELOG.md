@@ -2,6 +2,7 @@
 - Added a Performance page with a low-end mode that caps the frame rate at 60 FPS, shortens the render and simulation distances, cuts the particles, drops the entity shadows and turns the motion blur off on weak machines
 - Added an adaptive mode that caps the game at 30 FPS while the frame rate stays low and gives the cap back once it recovers
 - Added a performance report that tells you what holds the frame rate back, including the most common cause on a laptop: the game drawing on the processor instead of the graphics card
+- The performance report can put the game back on OpenGL when Polydium switched it to Vulkan and the Vulkan driver is the slow part
 - The main menu now lowers its frame cap when the machine cannot reach it, and puts it back when it can
 - The 3D player preview on the main menu is no longer redrawn for every single frame
 - Added a frame rate cap to the performance settings, so the game can be held at the refresh rate, 120, 60 or 30 frames a second instead of running uncapped

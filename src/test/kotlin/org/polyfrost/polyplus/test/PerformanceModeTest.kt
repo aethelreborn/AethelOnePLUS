@@ -31,7 +31,13 @@ class PerformanceModeTest {
 
     @Test
     fun `a machine without a graphics card is told what is wrong`() {
-        val findings = PerformanceMode.diagnose("llvmpipe (LLVM 15.0.7)", averageFps = 3, frameCap = 60, threshold = 24)
+        val findings = PerformanceMode.diagnose(
+            renderer = "llvmpipe (LLVM 15.0.7)",
+            backend = "default",
+            averageFps = 3,
+            frameCap = 60,
+            threshold = 24,
+        )
 
         assertEquals("software-renderer", findings.first().id)
         assertTrue(findings.any { it.id == "low-fps" })
@@ -39,23 +45,54 @@ class PerformanceModeTest {
 
     @Test
     fun `an uncapped frame rate is called out`() {
-        val findings = PerformanceMode.diagnose("NVIDIA GeForce RTX 3060", averageFps = 120, frameCap = 260, threshold = 24)
+        val findings = PerformanceMode.diagnose(
+            renderer = "NVIDIA GeForce RTX 3060",
+            backend = "default",
+            averageFps = 120,
+            frameCap = 260,
+            threshold = 24,
+        )
 
         assertEquals(listOf("uncapped"), findings.map { it.id })
     }
 
     @Test
     fun `a capped and healthy game gets no findings`() {
-        val findings = PerformanceMode.diagnose("NVIDIA GeForce RTX 3060", averageFps = 120, frameCap = 60, threshold = 24)
+        val findings = PerformanceMode.diagnose(
+            renderer = "NVIDIA GeForce RTX 3060",
+            backend = "vulkan",
+            averageFps = 120,
+            frameCap = 60,
+            threshold = 24,
+        )
 
         assertTrue(findings.isEmpty(), findings.toString())
     }
 
     @Test
     fun `a frame rate that was never measured is not a finding`() {
-        val findings = PerformanceMode.diagnose("NVIDIA GeForce RTX 3060", averageFps = 0, frameCap = 60, threshold = 24)
+        val findings = PerformanceMode.diagnose(
+            renderer = "NVIDIA GeForce RTX 3060",
+            backend = "vulkan",
+            averageFps = 0,
+            frameCap = 60,
+            threshold = 24,
+        )
 
         assertTrue(findings.isEmpty(), findings.toString())
+    }
+
+    @Test
+    fun `a slow game on vulkan is told it can go back to opengl`() {
+        val findings = PerformanceMode.diagnose(
+            renderer = "NVIDIA GeForce RTX 3060",
+            backend = "vulkan",
+            averageFps = 12,
+            frameCap = 60,
+            threshold = 24,
+        )
+
+        assertTrue(findings.any { it.id == "vulkan-backend" }, findings.toString())
     }
 
     @Test
