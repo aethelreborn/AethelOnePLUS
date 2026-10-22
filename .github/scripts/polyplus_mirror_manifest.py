@@ -30,6 +30,15 @@ def sha1_of(path: Path) -> str:
     return digest.hexdigest()
 
 
+def oneconfig_requirement() -> str:
+    """The OneConfig version the built jar needs, so the launcher can hold the update back."""
+    properties = Path("stonecutter.properties.toml").read_text(encoding="utf-8")
+    for line in properties.splitlines():
+        if line.strip().startswith("deps.oneconfig"):
+            return line.split("=", 1)[1].strip().strip('"')
+    return ""
+
+
 def main() -> int:
     jars = sorted(path for path in Path("jars").rglob("*.jar") if path.is_file())
     if len(jars) != EXPECTED_VERSIONS:
@@ -39,6 +48,7 @@ def main() -> int:
         return 1
 
     repo = os.environ.get("GITHUB_REPOSITORY", "aethelreborn/AethelOnePLUS")
+    oneconfig = oneconfig_requirement()
     entries = []
     seen_mc = set()
     for jar in jars:
@@ -60,6 +70,7 @@ def main() -> int:
                 "sha1": sha1_of(jar),
                 "size": jar.stat().st_size,
                 "mod_version": match.group("mod"),
+                "oneconfig": oneconfig,
             }
         )
 
