@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalOneConfigUiApi::class)
+
 package org.polyfrost.polyplus.client.gui
 
 import androidx.compose.animation.AnimatedVisibility
@@ -105,6 +107,7 @@ import net.minecraft.realms.RealmsBridge
 import org.apache.logging.log4j.LogManager
 import org.jetbrains.skia.Image as SkiaImage
 import org.jetbrains.skia.ImageInfo
+import org.polyfrost.oneconfig.api.ui.v1.ExperimentalOneConfigUiApi
 import org.polyfrost.oneconfig.api.ui.v1.keybind.trackTextInputFocus
 import org.polyfrost.oneconfig.api.ui.v1.components.Icon
 import org.polyfrost.oneconfig.internal.ui.components.NotificationsCenter

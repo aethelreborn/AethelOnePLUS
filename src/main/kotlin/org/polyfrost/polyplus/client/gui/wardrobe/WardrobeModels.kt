@@ -177,7 +177,10 @@ internal fun List<OutfitInfo>.favoritesFirst(): List<OutfitInfo> = sortedByDesce
 internal fun List<PlayerSkinInfo>.favoriteSkinsFirst(): List<PlayerSkinInfo> = sortedByDescending { it.favorite }
 
 internal val WARDROBE_COSMETIC_TYPES: List<CosmeticType> =
-    CosmeticType.entries.filter { it != CosmeticType.Unknown && it != CosmeticType.Emote }
+    // the pets live in the Shoulder section, they do not get one of their own
+    CosmeticType.entries.filter {
+        it != CosmeticType.Unknown && it != CosmeticType.Emote && it != CosmeticType.Pet
+    }
 
 internal fun CosmeticStoreInfo.anyOwned(ownedIds: Set<Int>): Boolean = variantList.any { it.id in ownedIds }
 

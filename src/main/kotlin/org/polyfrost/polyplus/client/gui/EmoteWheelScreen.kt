@@ -140,6 +140,34 @@ class EmoteWheelScreen : ComposeScreen(RenderMode.CONTINUOUS) {
     }
 }
 
+@Composable
+private fun EmoteEmptyState() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.widthIn(max = 260.dp),
+        ) {
+            BasicText(
+                text = "No emotes yet",
+                style = TextStyle(
+                    color = OneConfigTheme.current.textColor,
+                    fontSize = 17.sp,
+                    fontFamily = OneConfigTheme.current.fontFamily,
+                ),
+            )
+            BasicText(
+                text = "Unlock emotes in the PolyPlus wardrobe to use them here.",
+                style = TextStyle(
+                    color = OneConfigTheme.current.textColor.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    fontFamily = OneConfigTheme.current.fontFamily,
+                ),
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun EmoteWheelContent(logger: Logger, onRelease: (Int?) -> Unit) {
@@ -149,6 +177,12 @@ private fun EmoteWheelContent(logger: Logger, onRelease: (Int?) -> Unit) {
         EmoteWheels.slots(wheelIndex).map { id ->
             id?.let { emoteId -> CosmeticCatalog.getEmoteDefinition(emoteId)?.let { WheelSlot(it.id, it.name) } }
         }
+    }
+
+    // Without this the wheel is a single inert ring, which reads as a bug.
+    if (remember { CosmeticCatalog.ownedEmoteIds().isEmpty() }) {
+        EmoteEmptyState()
+        return
     }
 
     var mouseXRoot by remember { mutableFloatStateOf(0f) }

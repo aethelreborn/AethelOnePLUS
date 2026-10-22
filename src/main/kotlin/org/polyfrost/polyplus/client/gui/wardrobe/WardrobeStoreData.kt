@@ -224,7 +224,12 @@ internal fun buildWardrobeEntries(
         }
 
         WardrobeSection.Cosmetics -> for (type in WARDROBE_COSMETIC_TYPES) {
-            val ownedItems = owned(type)
+            // pets are folded into the Shoulder section: shoulder-perched pets live
+            // there natively, and a follow-mode pet uses the same variant pill as
+            // the mode switch, so the two belong together
+            val petOwned = if (type == CosmeticType.Shoulder) owned(CosmeticType.Pet) else emptyList()
+            val petShop = if (type == CosmeticType.Shoulder) shop(CosmeticType.Pet) else emptyList()
+            val ownedItems = owned(type) + petOwned
             val shopItems = shop(type)
             if (type == CosmeticType.Cape) {
                 entries += WardrobeEntry.Divider(type.displayName, anchor = true)
@@ -275,6 +280,8 @@ internal fun buildWardrobeEntries(
             }
             ownedItems.mapTo(entries) { WardrobeEntry.Owned(it) }
             shopItems.mapTo(entries) { WardrobeEntry.Shop(it, type.serializedName) }
+            // the pets stay typed as pets, so equipping one still targets the pet slot
+            petShop.mapTo(entries) { WardrobeEntry.Shop(it, CosmeticType.Pet.serializedName) }
         }
     }
     return entries
