@@ -639,7 +639,6 @@ private val CloseBackground = Color(0x80FF4444)
 
 private val PanelShape: Shape
     @Composable
-    @ReadOnlyComposable
     get() = ppShape(9.dp)
 
 private val Outfit: FontFamily by lazy {
