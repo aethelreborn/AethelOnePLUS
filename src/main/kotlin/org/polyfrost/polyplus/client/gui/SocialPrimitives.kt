@@ -70,6 +70,9 @@ import org.polyfrost.oneconfig.api.ui.v1.components.Icon
 import org.polyfrost.oneconfig.api.ui.v1.keybind.trackTextInputFocus
 import org.polyfrost.oneconfig.api.ui.v1.theme.OneConfigTheme
 import java.util.UUID
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import org.polyfrost.polyplus.client.PolyPlusBadge
+import org.polyfrost.polyplus.client.social.PlayerNamesRepository
 
 @Composable
 internal fun SocialModalScrim(onDismiss: () -> Unit, content: @Composable BoxScope.() -> Unit) {
