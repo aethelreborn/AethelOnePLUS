@@ -1,3 +1,8 @@
+## 1.3.12
+- Updated to the new wardrobe. The cosmetics screen was rebuilt upstream and the old one could no longer read the new API, so the cosmetics did not load at all. The wardrobe, the outfits, the skins, the variant swatches and the preview of the selected item are all here now, with the PolyPlus badge, the pets in the Shoulder section and the local-backend hint on top of it
+- The emote wheel says that there are no emotes to use instead of showing an empty ring
+- The theme and icon API moved to the public OneConfig package, the way upstream did it
+
 ## 1.3.11
 - Added a more page to the main menu, so the account switcher, the hosting button, the social menu and the cosmetics stop crowding the OneClient logo
 - Added a Performance page with a low-end mode that caps the frame rate at 60 FPS, shortens the render and simulation distances, cuts the particles, drops the entity shadows and turns the motion blur off on weak machines

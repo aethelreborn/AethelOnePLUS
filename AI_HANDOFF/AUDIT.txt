@@ -181,3 +181,38 @@ The plan for whoever takes it on:
 The launcher side is not part of this: the two repos only meet at the game's
 video settings, and that is settled - the launcher's `options.txt`, the mod's
 values in memory.
+
+## 2026-10-22 - The upstream port is done, and the cosmetics live again
+
+The merge is in. `feature/upstream-merge` was merged into `main`, and every one
+of the ten game versions builds again (1.8.9 through 26.3).
+
+What it took:
+
+- The conflicts were resolved per file, and where both sides had something to
+  say, both sides stayed: our performance page, the more page, the host-world
+  keybind, the local-backend hint, the wing visibility option and the pet
+  preview work stayed, and upstream's wardrobe, the wardrobe keybind, the forced
+  capes and the outdated-runtime message came with it.
+- OneConfig 1.5.0 took the theme and the icon out of the internal package, so
+  the two files that still used the internal one were moved over to the public
+  API, and the shape helpers are read-only composables again.
+- Upstream rewrote the social primitives and took the badge-aware player name
+  with it, so the badge atlas, the glyph and the player name went back into the
+  friends list and the sidebar.
+- The pets are folded into the Shoulder section of the new wardrobe, and the
+  emote wheel says that there are no emotes to use instead of showing an empty
+  ring.
+- `deps.polydium` stays at 1.1.2: the Polyfrost repository serves 1.1.2 and
+  1.1.5 is a 404 there, so upstream's own pin does not resolve.
+
+What was left behind on purpose: the wardrobe search and the All rail tab
+(upstream's wardrobe has a search of its own), the list fallback for more than
+eight owned emotes (the wheel holds a fixed set of slots now) and the
+pick-up-after-purchase fix (upstream's store refetches when a purchase lands).
+
+LESSON: when an upstream project rewrites the screen a feature lives on, the
+feature has to be re-implemented against the new structure - a hunk resolution
+would have dropped the pet shoulder tab, the scoreboard badge and the presence
+badge in the social lists, and nobody would have noticed until the cosmetics
+were gone.
