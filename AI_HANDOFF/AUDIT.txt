@@ -100,6 +100,24 @@ after every push.
    install and an unreachable manifest leaves the installed mod alone. Shipped in
    AethelONE 2.31.0.
 
+10. `21c6282` **fix(performance)** — the video options belong to the launcher.
+    The launcher writes the video settings into the game's own `options.txt`
+    before every launch, and the performance settings wrote their own lowered
+    values back on top of that, so the two of us could overwrite each other.
+    The performance settings now only change the values in memory: the low-end
+    mode and the frame rate cap re-apply from the PolyPlus settings on every
+    start and the file stays the launcher's alone. The two places that still
+    save the options write back exactly what the game read: the graphics backend
+    switch and the wWaypoints keybinds it unbound.
+
+Working with the other session (the AethelONE launcher one) on 2026-10-22: the
+two repos write the same game's video settings from both sides, so the rule is
+now written down on both sides - `options.txt` is the launcher's, the mod only
+ever changes the values in memory. Polydium is not on Modrinth (the search
+returns nothing), so it cannot be a mod of its own in the launcher's
+performance set: it ships inside the PolyPlus jar, and the launcher points at
+the patched jar through the mirror manifest.
+
 What Polydium is, since it is asked about: the Polyfrost performance mod, a
 separate mod (`org.polyfrost:polydium`) that PolyPlus bundles inside its jar.
 It carries the mixins that skip work the vanilla renderer does not need, and on
