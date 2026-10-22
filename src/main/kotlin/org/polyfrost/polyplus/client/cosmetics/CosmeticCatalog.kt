@@ -104,7 +104,8 @@ object CosmeticCatalog {
         }.onFailure { reportCatalogFailure(it) }
             .getOrElse { error ->
                 CosmeticLoadProgress.fail(
-                    error.message ?: error::class.java.simpleName,
+                    if (isRuntimeMismatch(error)) CosmeticLoadProgress.OUTDATED_RUNTIME
+                    else error.message ?: error::class.java.simpleName,
                     localBackendDown = isLocalBackendDown(error),
                 )
                 return

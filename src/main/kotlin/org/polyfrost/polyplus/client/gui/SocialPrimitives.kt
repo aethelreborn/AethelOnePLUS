@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalOneConfigUiApi::class)
+
 package org.polyfrost.polyplus.client.gui
 
 import androidx.compose.animation.animateColorAsState
@@ -42,13 +44,10 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
@@ -63,13 +62,10 @@ import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
-import org.jetbrains.skia.Image as SkiaImage
+import org.polyfrost.oneconfig.api.ui.v1.ExperimentalOneConfigUiApi
+import org.polyfrost.oneconfig.api.ui.v1.components.Icon
 import org.polyfrost.oneconfig.api.ui.v1.keybind.trackTextInputFocus
-import org.polyfrost.oneconfig.internal.ui.components.Icon
-import org.polyfrost.oneconfig.internal.ui.themes.Accent
-import org.polyfrost.oneconfig.internal.ui.themes.LocalTheme
-import org.polyfrost.polyplus.client.PolyPlusBadge
-import org.polyfrost.polyplus.client.social.PlayerNamesRepository
+import org.polyfrost.oneconfig.api.ui.v1.theme.OneConfigTheme
 import java.util.UUID
 
 @Composable
@@ -126,7 +122,7 @@ internal fun SocialText(
     fontWeight: FontWeight = FontWeight.Normal,
     textAlign: TextAlign = TextAlign.Start,
     letterSpacing: TextUnit = TextUnit.Unspecified,
-    fontFamily: FontFamily = LocalTheme.current.typography.family,
+    fontFamily: FontFamily = OneConfigTheme.current.fontFamily,
     textDecoration: TextDecoration? = null,
     maxLines: Int = Int.MAX_VALUE,
     softWrap: Boolean = maxLines != 1,
@@ -150,56 +146,6 @@ internal fun SocialText(
             textDecoration = textDecoration,
         ),
     )
-}
-
-/** The badge texture [PolyPlusBadge] blits next to names in the tab list, decoded once for compose surfaces. */
-internal object SocialBadgeAtlas {
-    private const val PATH = "/assets/polyplus/textures/badge.png"
-
-    const val TEX_W = 48
-    const val TEX_H = 45
-
-    val bitmap: ImageBitmap? by lazy {
-        runCatching {
-            val bytes = SocialBadgeAtlas::class.java.getResourceAsStream(PATH)!!.use { it.readBytes() }
-            SkiaImage.makeFromEncoded(bytes).toComposeImageBitmap()
-        }.getOrNull()
-    }
-}
-
-@Composable
-internal fun SocialBadgeGlyph(fontSize: TextUnit, modifier: Modifier = Modifier) {
-    val image = SocialBadgeAtlas.bitmap ?: return
-    if (!fontSize.isSpecified) return
-    val width = fontSize.value.dp * 1.15f
-    Image(
-        image,
-        contentDescription = null,
-        modifier = modifier.width(width).height(width * (SocialBadgeAtlas.TEX_H.toFloat() / SocialBadgeAtlas.TEX_W)),
-        filterQuality = FilterQuality.High,
-    )
-}
-
-/** Player display name with the PolyPlus presence badge, for social lists such as friends and groups. */
-@Composable
-internal fun SocialPlayerName(
-    playerId: String,
-    fontSize: TextUnit,
-    modifier: Modifier = Modifier,
-    color: Color = SocialTextPrimary,
-    fontWeight: FontWeight = FontWeight.Normal,
-    maxLines: Int = Int.MAX_VALUE,
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        if (PolyPlusBadge.shouldBadgeId(playerId)) {
-            SocialBadgeGlyph(fontSize)
-        }
-        SocialText(PlayerNamesRepository.displayName(playerId), fontSize, color = color, fontWeight = fontWeight, maxLines = maxLines)
-    }
 }
 
 @Composable
@@ -283,7 +229,7 @@ internal fun SocialButton(
     val background by animateColorAsState(
         when {
             filled && danger -> SocialDangerColor
-            filled -> Accent
+            filled -> OneConfigTheme.accent
             else -> SocialControlBackground
         },
     )
@@ -372,7 +318,7 @@ internal fun SocialTextField(
     maxLength: Int = 64,
     onSubmit: (() -> Unit)? = null,
 ) {
-    val bodyFont = LocalTheme.current.typography.family
+    val bodyFont = OneConfigTheme.current.fontFamily
     val focusRequester = remember { FocusRequester() }
     Row(
         modifier = modifier
@@ -393,7 +339,7 @@ internal fun SocialTextField(
                 modifier = Modifier.fillMaxWidth().focusRequester(focusRequester).trackTextInputFocus(),
                 singleLine = true,
                 textStyle = TextStyle(color = SocialTextPrimary, fontSize = 14.sp, fontFamily = bodyFont),
-                cursorBrush = SolidColor(Accent),
+                cursorBrush = SolidColor(OneConfigTheme.accent),
                 keyboardActions = onSubmit?.let {
                     KeyboardActions(onDone = { it() }, onSend = { it() })
                 } ?: KeyboardActions.Default,
@@ -430,11 +376,11 @@ internal fun SocialToggle(label: String, checked: Boolean, modifier: Modifier = 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         SocialText(label, fontSize = 14.sp, modifier = Modifier.weight(1f))
-        val theme = LocalTheme.current
-        val boxColor by animateColorAsState(if (checked) Accent else theme.componentBackground)
+        val theme = OneConfigTheme.current
+        val boxColor by animateColorAsState(if (checked) OneConfigTheme.accent else theme.componentBackground)
         val boxBorder by animateColorAsState(
             when {
-                checked -> Accent
+                checked -> OneConfigTheme.accent
                 hovered -> theme.textColorSecondary
                 else -> theme.borderColor
             },
@@ -476,12 +422,12 @@ internal fun <T> SocialDropdown(
     val (triggerInteraction, triggerHovered) = rememberSocialHover()
     val triggerBorder by animateColorAsState(
         when {
-            expanded -> Accent
+            expanded -> OneConfigTheme.accent
             triggerHovered -> SocialHoverBorder
             else -> SocialBorderColor
         },
     )
-    val triggerBackground by animateColorAsState(if (expanded) Accent.asSocialSelected else SocialControlBackground)
+    val triggerBackground by animateColorAsState(if (expanded) OneConfigTheme.accent.asSocialSelected else SocialControlBackground)
     var triggerSize by remember { mutableStateOf(IntSize.Zero) }
     Box(modifier = modifier) {
         Box(
@@ -532,7 +478,7 @@ internal fun <T> SocialDropdown(
                     options.forEach { option ->
                         SocialMenuItem(
                             label = labelFor(option),
-                            color = if (option == selected) Accent else SocialTextPrimary,
+                            color = if (option == selected) OneConfigTheme.accent else SocialTextPrimary,
                             selected = option == selected,
                             horizontalPadding = 10.dp,
                         ) { onSelect(option); expanded = false }
@@ -557,7 +503,7 @@ internal fun SocialMenuItem(
     val (interaction, hovered) = rememberSocialHover()
     val background by animateColorAsState(
         when {
-            selected -> Accent.asSocialSelected
+            selected -> OneConfigTheme.accent.asSocialSelected
             hovered -> SocialHoverOverlay
             else -> Color.Transparent
         },
