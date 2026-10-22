@@ -141,3 +141,43 @@ file in the game folder.
 LESSON: an option that only applies once the user picks it by hand must not
 write anything on every launch, or it silently overwrites a setting the user
 made somewhere else. The frame rate cap keeps a flag for that reason.
+
+---
+
+## 2026-10-22 - The upstream sync needs a port, not a rebase
+
+The "Sync upstream PolyPlus" workflow keeps failing on the rebase, and the
+reason is not a stale patch. Polyfrost merged `feat/wardrobe` upstream and it
+rebuilt the cosmetics screen, the emote wheel, the previews and the social UI:
+40 commits and a new `client/gui/wardrobe/` package. Our 84 patches after the
+common base `c433d5d` are written against the old structure, and about thirty
+of them touch files upstream rewrote.
+
+The first conflict says it all: `a385ab1` (pets folded into the Shoulder tab)
+against the new `WardrobeShell`/`WardrobeStoreData` structure. Upstream keeps
+Pet as its own tab, so that feature is ours and has to be re-implemented, not
+dropped. The same applies to the wardrobe search and the All rail tab
+(`b12f7b8`), the store purchase fix (`d2ff7c4`), the badge on the scoreboard
+and on the friends list, the social mute and presence work, the emote wheel
+fallbacks, the config options and the preview renderer.
+
+So this is a port of our features onto the new wardrobe, not a mechanical
+conflict resolution. Doing it in one pass risks silently dropping features the
+owner asked for (the pet shoulder tab, the scoreboard badge, the wardrobe
+search), so the fork stays on the old base for now: it builds, it is released,
+and the only red thing is the scheduled sync, which has failed the same way for
+days.
+
+The plan for whoever takes it on:
+
+1. Branch from `upstream/main` (`7cc0f9c`) and replay our patches in order.
+2. For every patch whose file upstream rewrote, decide per feature whether
+   upstream carried it over. The wardrobe rewrite covers a lot of it (outfits,
+   skins, variant swatches, previewing the selected item).
+3. Re-implement what upstream did not carry over as fresh commits against the
+   new structure and drop the old patch.
+4. Push it and let the sync workflow confirm the result is green.
+
+The launcher side is not part of this: the two repos only meet at the game's
+video settings, and that is settled - the launcher's `options.txt`, the mod's
+values in memory.
