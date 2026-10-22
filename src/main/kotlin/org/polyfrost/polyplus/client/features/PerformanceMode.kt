@@ -247,7 +247,13 @@ object PerformanceMode {
         applyFrameRateCap()
     }
 
-    /** Puts the frame rate cap the user picked on the video options. */
+    /**
+     * Puts the frame rate cap the user picked on the video options.
+     *
+     * The options are changed in memory only. The launcher writes the game's
+     * `options.txt` before every launch, so a mod that saves the file would
+     * only ever fight it for who owns the video settings.
+     */
     fun applyFrameRateCap() {
         // a cap nobody picked leaves the video options alone
         if (!PolyPlusPerformanceConfig.frameRateCapTouched) return
@@ -262,7 +268,6 @@ object PerformanceMode {
             VanillaOptions.FRAME_RATE_LIMIT,
             VanillaOptions.FRAME_RATE_LIMIT_LEGACY,
         )
-        options.save()
         logger.info("The frame rate cap is now {}", cap)
     }
 
@@ -270,6 +275,11 @@ object PerformanceMode {
      * Cuts the work the game asks for when the machine cannot keep up: the frame
      * rate is capped, the render and simulation distances shrink, the particles
      * and the entity shadows go and the motion blur is turned off.
+     *
+     * The video options are changed in memory only. The launcher writes the
+     * game's `options.txt` before every launch, so the file stays the
+     * launcher's alone and the mode re-applies itself from the PolyPlus
+     * settings on every start.
      */
     fun applyLowEndMode() {
         val options = Minecraft.getInstance().options ?: return
@@ -314,7 +324,6 @@ object PerformanceMode {
         if (!VanillaOptions.setEnumOption(options, "FAST", VanillaOptions.GRAPHICS_MODE)) {
             VanillaOptions.setEnumOption(options, "1", VanillaOptions.GRAPHICS_MODE)
         }
-        options.save()
 
         disableBlur()
         PolyPlusPerformanceConfig.save()
@@ -353,7 +362,6 @@ object PerformanceMode {
         if (graphicsMode.isNotBlank()) {
             VanillaOptions.setEnumOption(options, graphicsMode, VanillaOptions.GRAPHICS_MODE)
         }
-        options.save()
 
         PolyPlusPerformanceConfig.lowEndApplied = false
         PolyPlusPerformanceConfig.save()
@@ -379,7 +387,6 @@ object PerformanceMode {
                 VanillaOptions.FRAME_RATE_LIMIT,
                 VanillaOptions.FRAME_RATE_LIMIT_LEGACY,
             )
-            options.save()
         }
         disableBlur()
         PolyPlusPerformanceConfig.adaptiveApplied = true
@@ -399,7 +406,6 @@ object PerformanceMode {
                 VanillaOptions.FRAME_RATE_LIMIT,
                 VanillaOptions.FRAME_RATE_LIMIT_LEGACY,
             )
-            options.save()
         }
         PolyPlusPerformanceConfig.adaptiveApplied = false
         PolyPlusPerformanceConfig.adaptiveSavedFrameCap = 0

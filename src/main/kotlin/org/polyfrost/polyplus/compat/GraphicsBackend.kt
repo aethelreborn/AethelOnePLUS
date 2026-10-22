@@ -29,7 +29,13 @@ object GraphicsBackend {
         return VanillaOptions.enumOption(options, "preferredGraphicsBackend")?.lowercase() ?: "default"
     }
 
-    /** Puts the game back on OpenGL, telling Polydium about it as well. */
+    /**
+     * Puts the game back on OpenGL, telling Polydium about it as well.
+     *
+     * The game's options are saved here because the backend choice has to
+     * survive the restart. The values written back are the ones the game read
+     * from the file, so the launcher's video settings are not affected.
+     */
     fun switchToOpenGL(): Boolean {
         val options = Minecraft.getInstance().options ?: return false
         var changed = VanillaOptions.setEnumOption(options, "OPENGL", "preferredGraphicsBackend")

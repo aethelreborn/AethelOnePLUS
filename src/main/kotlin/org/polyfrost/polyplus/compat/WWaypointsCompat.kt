@@ -51,6 +51,8 @@ object WWaypointsCompat {
             if (boundKeys.isEmpty()) return@register
             boundKeys.forEach { it.setKey(InputConstants.UNKNOWN) }
             KeyMapping.resetMapping()
+            // the options are written back exactly as they were read, so the
+            // launcher's video settings are not affected by this
             client.options.save()
         }
     }

@@ -1,6 +1,7 @@
 ## 1.3.11
 - Added a more page to the main menu, so the account switcher, the hosting button, the social menu and the cosmetics stop crowding the OneClient logo
 - Added a Performance page with a low-end mode that caps the frame rate at 60 FPS, shortens the render and simulation distances, cuts the particles, drops the entity shadows and turns the motion blur off on weak machines
+- The performance settings no longer write the game's video options to disk, so the launcher stays the one that owns them
 - Added an adaptive mode that caps the game at 30 FPS while the frame rate stays low and gives the cap back once it recovers
 - Added a performance report that tells you what holds the frame rate back, including the most common cause on a laptop: the game drawing on the processor instead of the graphics card
 - The performance report can put the game back on OpenGL when Polydium switched it to Vulkan and the Vulkan driver is the slow part
