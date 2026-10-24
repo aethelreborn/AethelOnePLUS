@@ -1,59 +1,49 @@
-@file:OptIn(ExperimentalOneConfigUiApi::class)
-
 package org.polyfrost.polyplus.client.gui
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavGraphBuilder
 import net.minecraft.client.gui.screens.TitleScreen
-import org.polyfrost.oneconfig.api.ui.v1.ExperimentalOneConfigUiApi
-import org.polyfrost.oneconfig.api.ui.v1.ModCardIcons
-import org.polyfrost.oneconfig.api.ui.v1.ModsPageDecorator
-import org.polyfrost.oneconfig.api.ui.v1.ModsPageDecorators
 import org.polyfrost.oneconfig.api.ui.v1.OneConfigUI
-import org.polyfrost.oneconfig.api.ui.v1.page.OneConfigPage
-import org.polyfrost.oneconfig.api.ui.v1.page.OneConfigPages
-import org.polyfrost.oneconfig.api.ui.v1.page.PageGroup
-import org.polyfrost.oneconfig.api.ui.v1.page.PageText
-import org.polyfrost.oneconfig.api.ui.v1.theme.OneConfigTheme
+import org.polyfrost.oneconfig.api.ui.v1.navigation.NavigationGroup
+import org.polyfrost.oneconfig.api.ui.v1.navigation.NavigationRoute
+import org.polyfrost.oneconfig.api.ui.v1.navigation.get
 import org.polyfrost.polyplus.client.utils.ClientPlatform
+import org.polyfrost.polyplus.privacy.PrivacyConsent
 
 object PolyPlusOneConfigIntegration {
-    private const val MODS_PAGE = "oneconfig:mods"
-    private const val BRAND_LOGO = "assets/polyplus/brand/oneclient.svg"
-    private const val MOD_ICONS = "assets/polyplus/modicons/"
-
-    private val modIcons = setOf(
-        "betterhurtcam", "betternightvision", "betterscreens", "blur", "confirmdisconnect", "crosshairtweaks",
-        "custom-block-highlight", "droppeditemtweaks", "fastquit", "fovchanger", "freelook", "gammautils", "mountopacity",
-        "numericalenchantments", "overlaytweaks", "rendertweaks", "sciophobia", "scrolltweaks", "shaketweaks",
-        "simplenickhider", "smoothskies", "tooltipscroll", "waveycapes", "zoomify",
+    private val cosmeticsRoute = NavigationRoute(
+        id = "cosmetics",
+        icon = "assets/polyplus/ico/stars.svg",
+        route = PolyPlusCosmeticsRoute,
     )
 
-    private val wardrobePage = object : OneConfigPage(
-        "polyplus:wardrobe",
-        PageText.translatable("polyplus.page.wardrobe", "Wardrobe"),
-        "assets/polyplus/ico/stars.svg",
-        PageGroup.PERSONALIZATION,
-    ) {
-        override val order: Int get() = 150
+    @JvmStatic
+    fun navigationGroups(original: List<NavigationGroup>): List<NavigationGroup> {
+        if (!PrivacyConsent.allowsOnlineServices()) return original
 
-        @Composable
-        override fun Content() = PolyPlusCosmeticsScreen()
-    }
+        if (original.any { group -> group.routes.any { it.route == PolyPlusCosmeticsRoute } }) {
+            return original
+        }
 
-    private val modOrderToggle = object : ModsPageDecorator() {
-        @Composable
-        override fun Decorate(content: @Composable () -> Unit) = ModOrderToggle.Overlay(content)
-    }
-
-    fun register() {
-        if (OneConfigPages.byId(wardrobePage.id) == null) OneConfigPages.register(wardrobePage)
-        ModsPageDecorators.register(modOrderToggle)
-        ModCardIcons.register { modId, defaultIcon -> modCardIcon(modId, defaultIcon) }
-        OneConfigTheme.overrideLogo(BRAND_LOGO)
+        return original.map { group ->
+            if (group.id == "Personalization") {
+                val routes = group.routes.toMutableList()
+                routes.add(minOf(1, routes.size), cosmeticsRoute)
+                NavigationGroup(group.id, *routes.toTypedArray())
+            } else {
+                group
+            }
+        }
     }
 
     @JvmStatic
-    fun openCosmetics() = OneConfigUI.open(wardrobePage)
+    fun addRoutes(builder: NavGraphBuilder) {
+        if (!PrivacyConsent.allowsOnlineServices()) return
+        builder.polyPlusCosmeticsGraph()
+    }
+
+    @JvmStatic
+    fun openCosmetics() = openOneConfig(PolyPlusCosmeticsRoute)
 
     fun openCosmeticsFromKeybind() {
         when (ClientPlatform.currentScreen()) {
@@ -63,16 +53,15 @@ object PolyPlusOneConfigIntegration {
     }
 
     @JvmStatic
-    fun openMods() = OneConfigUI.open(MODS_PAGE)
+    fun openMods() = OneConfigUI.openMods()
 
-    private fun modCardIcon(modId: String, defaultIcon: String?): String? {
-        val id = when (val base = modId.replaceFirst(Regex("(v\\d+)?\\.(json|toml)$"), "")) {
-            "fullbright", "polyfullbright" -> "gammautils"
-            "legacy_waveycapes" -> "waveycapes"
-            "legacy_skin_layers", "legacy-skin-layers", "skinlayers3d" -> return null
-            else -> base
-        }
-        if (id.startsWith("polyplus")) return MOD_ICONS + "polyplus.svg"
-        return if (id in modIcons) "$MOD_ICONS$id.svg" else defaultIcon
+    private fun openOneConfig(route: Any) {
+        OneConfigUI.open(route)
+    }
+}
+
+fun NavGraphBuilder.polyPlusCosmeticsGraph() {
+    composable<PolyPlusCosmeticsRoute> {
+        PolyPlusCosmeticsScreen()
     }
 }

@@ -109,12 +109,17 @@ import org.jetbrains.skia.Image as SkiaImage
 import org.jetbrains.skia.ImageInfo
 import org.polyfrost.oneconfig.api.ui.v1.ExperimentalOneConfigUiApi
 import org.polyfrost.oneconfig.api.ui.v1.keybind.trackTextInputFocus
-import org.polyfrost.oneconfig.api.ui.v1.components.Icon
+import org.polyfrost.oneconfig.internal.ui.components.Icon
 import org.polyfrost.oneconfig.internal.ui.components.NotificationsCenter
 import org.polyfrost.oneconfig.internal.ui.compose.ComposeScreen
-import org.polyfrost.oneconfig.api.ui.v1.theme.OneConfigTheme
-import org.polyfrost.oneconfig.api.ui.v1.theme.ProvideOneConfigTheme
+import org.polyfrost.oneconfig.internal.ui.themes.Accent
+import org.polyfrost.oneconfig.internal.ui.themes.LocalTheme
+import org.polyfrost.oneconfig.internal.ui.themes.MinecraftDark
+import org.polyfrost.oneconfig.internal.ui.themes.MinecraftLight
+import org.polyfrost.oneconfig.internal.ui.themes.PolyGlassLight
+import org.polyfrost.oneconfig.internal.ui.themes.Theme
 import org.polyfrost.polyplus.client.PolyPlusClient
+import org.polyfrost.polyplus.client.gui.PolyPlusOneConfigIntegration
 import org.polyfrost.polyplus.client.PolyPlusConfig
 import org.polyfrost.polyplus.client.PolyPlusMainMenuConfig
 import org.polyfrost.polyplus.client.PolyPlusRecentServers
@@ -279,7 +284,7 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
             }
         }
 
-        ProvideOneConfigTheme {
+        Theme {
             MainMenu(
                 screen = this,
                 guiScale = menuGuiScale,
@@ -631,10 +636,10 @@ private const val ONBOARDING_ASSETS = "assets/polyplus/onboarding/"
 
 private val PageBackground = Color(0xFF11171C)
 private val PanelBackground: Color
-    @Composable get() = OneConfigTheme.current.componentBackground.copy(alpha = 0.5f)
+    @Composable get() = LocalTheme.current.componentBackground.copy(alpha = 0.5f)
 private val ServerIconBackground = Color(0x33FFFFFF)
 private val FeaturedCardBackground: Color
-    @Composable get() = OneConfigTheme.current.componentBackground.copy(alpha = 0.8f)
+    @Composable get() = LocalTheme.current.componentBackground.copy(alpha = 0.8f)
 private val CloseBackground = Color(0x80FF4444)
 
 private val PanelShape: Shape
@@ -1065,9 +1070,9 @@ private fun VanillaMenuButton() {
 
 @Composable
 private fun ThemeToggleButton() {
-    val themeName = OneConfigTheme.current.name
-    val light = themeName == OneConfigTheme.POLY_GLASS_LIGHT.name || themeName == OneConfigTheme.MINECRAFT_LIGHT.name
-    val minecraftStyle = themeName == OneConfigTheme.MINECRAFT_DARK.name || themeName == OneConfigTheme.MINECRAFT_LIGHT.name
+    val themeName = LocalTheme.current.name
+    val light = themeName == PolyGlassLight.name || themeName == MinecraftLight.name
+    val minecraftStyle = themeName == MinecraftDark.name || themeName == MinecraftLight.name
     IconButton(
         icon = if (light) ONBOARDING_ASSETS + "sun.svg" else ASSETS + "moon-star.svg",
         tooltip = if (light) "Switch to dark theme" else "Switch to light theme",
@@ -1200,7 +1205,7 @@ private fun Footer(modifier: Modifier, unscaled: (Float) -> Dp) {
 
 @Composable
 private fun FooterBrandText(platform: String) {
-    val bodyFont = OneConfigTheme.current.fontFamily
+    val bodyFont = LocalTheme.current.typography.family
     val primary = Color.White
     val secondary = SocialTextSecondary
 
@@ -1245,8 +1250,8 @@ private fun PillButton(label: String, icon: String, modifier: Modifier = Modifie
                 Modifier.align(Alignment.CenterEnd)
                     .padding(end = 14.dp)
                     .size(8.dp)
-                    .clip(OneConfigTheme.current.circleShape)
-                    .background(OneConfigTheme.accent),
+                    .clip(LocalTheme.current.circleShape)
+                    .background(Accent),
             )
         }
     }
@@ -1667,7 +1672,7 @@ private fun AccountRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(ppShape(8.dp))
-            .background(if (hovered && clickable) OneConfigTheme.current.componentBackground.copy(alpha = 0.4f) else Color.Transparent)
+            .background(if (hovered && clickable) LocalTheme.current.componentBackground.copy(alpha = 0.4f) else Color.Transparent)
             .hoverable(interaction)
             .then(if (clickable) Modifier.clickableWithSound(onClick) else Modifier)
             .padding(horizontal = 8.dp, vertical = 6.dp),

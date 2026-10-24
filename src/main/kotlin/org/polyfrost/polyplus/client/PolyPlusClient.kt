@@ -35,7 +35,6 @@ import org.polyfrost.polyplus.client.features.MainMenuPerformance
 import org.polyfrost.polyplus.client.features.ModpackDiff
 import org.polyfrost.polyplus.client.features.OnboardingFeatures
 import org.polyfrost.polyplus.client.features.PerformanceMode
-import org.polyfrost.polyplus.client.gui.PolyPlusOneConfigIntegration
 import org.polyfrost.polyplus.client.gui.VanillaMenuButton
 import org.polyfrost.polyplus.client.gui.preview.PlayerPreviewRenderer
 import org.polyfrost.polyplus.client.host.HostWorldManager
